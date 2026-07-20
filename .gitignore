@@ -1,0 +1,4 @@
+*.pdf
+a.out
+*.o
+*.cm[ix]
