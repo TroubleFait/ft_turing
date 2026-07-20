@@ -133,16 +133,16 @@ module StructuralChars = struct
   type t =
   | BeginArray
   | EndArray
-  | BeginObject
-  | EndObject
+  (* | BeginObject
+  | EndObject *)
   | NameSeparator
   | ValueSeparator
 
   let of_char = function
   | '[' -> Some BeginArray
   | ']' -> Some EndArray
-  | '{' -> Some BeginObject
-  | '}' -> Some EndObject
+  (* | '{' -> Some BeginObject
+  | '}' -> Some EndObject *)
   | ':' -> Some NameSeparator
   | ',' -> Some ValueSeparator
   |  _  -> None
@@ -150,8 +150,8 @@ module StructuralChars = struct
   let to_string = function
   | BeginArray     -> "["
   | EndArray       -> "]"
-  | BeginObject    -> "{"
-  | EndObject      -> "}"
+  (* | BeginObject    -> "{"
+  | EndObject      -> "}" *)
   | NameSeparator  -> ":"
   | ValueSeparator -> ","
 end
