@@ -2,4 +2,6 @@
 ft_turing
 *.o
 *.cm[ix]
-OCamlMakefile
+.idea
+._d
+.vscode

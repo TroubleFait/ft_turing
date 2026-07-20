@@ -4,19 +4,19 @@ RESULT = ft_turing
 
 _ := $(shell test -e OCamlMakefile || cp $(shell opam var lib)/ocaml-makefile/OCamlMakefile OCamlMakefile)
 
-.PHONY: all g clean fclean re
+.PHONY: all g ft_clean fclean re
 
 all: native-code
 
 g:
-	$(MAKE) native-code OCAMLFLAGS="-g"
+	@$(MAKE) --no-print-directory native-code OCAMLFLAGS="-g"
 
-clean: mostlyclean
-	find . \( -iname "*.cm*" -o -iname "*.o" \) -print -delete
+ft_clean: mostlyclean
+	@find . \( -iname "*.cm*" -o -iname "*.o" \) -print -delete
 
-fclean: clean
-	rm -f OCamlMakefile
-	rm $(RESULT)
+fclean: ft_clean
+	@rm -f OCamlMakefile
+	@rm $(RESULT)
 
 re: fclean all
 
