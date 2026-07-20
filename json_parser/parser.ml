@@ -1,7 +1,7 @@
 exception Open_end of string
 
 let open_end message =
-  raise @@ Open_end @@ "Open " ^ message ^ " at end of file"
+  raise @@ Open_end ("Open " ^ message ^ " at end of file")
 
 module Tokens = struct
   include Lexer.Tokens
@@ -10,13 +10,13 @@ module Tokens = struct
 
   let unexpected token =
     raise (
-      Unexpected
+      Unexpected (
       (match token with
-      | StructuralChar -> "StructuralChar"
-      | String         -> "String"
-      | Number         -> "Number"
-      | LiteralName    -> "LiteralName")
-      ^ ": " ^ to_string token
+      | StructuralChar _ -> "StructuralChar"
+      | String _         -> "String"
+      | Number _         -> "Number"
+      | LiteralName _    -> "LiteralName")
+      ^ ": " ^ to_string token)
     )
 end
 
@@ -34,19 +34,20 @@ module Values = struct
   | String of string
   | Bool of bool
   | Null
+  | Empty
 
   let of_literal_name = function
   | Lexer.LiteralNames.Bool b -> Bool b
   | Lexer.LiteralNames.Null -> Null
 
-  let of_tokens (token_list : Tokens.t list) : t option, Tokens.t list =
+  let of_tokens (token_list : Tokens.t list) : t * Tokens.t list =
     match token_list with
-    | [] -> None, []        (* Is an exception warranted here instead? *)
+    | [] -> Empty, []        (* Is an exception warranted here instead? *)
     | head :: tail ->
     match head with
-    | Tokens.Numbers n      -> Some (Numbers.of_token n), tail
-    | Tokens.String s       -> Some (String s),           tail
-    | Tokens.LiteralNames l -> Some (of_literal_name l),  tail
+    | Tokens.Number n       -> Number (Numbers.of_token n), tail
+    | Tokens.String s       -> String s,           tail
+    | Tokens.LiteralName l  -> of_literal_name l,  tail
     | Tokens.StructuralChar c ->
     let value, next_token =
       match c with
@@ -54,7 +55,7 @@ module Values = struct
       | Lexer.StructuralChars.BeginArray  -> Arrays.of_tokens  tail
       | _ -> Tokens.unexpected head
     in
-    Some value, next_token
+    value, next_token
 end
 
 (* module Objects = struct
@@ -85,12 +86,12 @@ end
 end *)
 
 module Arrays = struct
-  type bound_token =
+  (* type bound_token =
   | Begin of Lexer.StructuralChars.BeginArray
-  | End of Lexer.StructuralChars.EndArray
+  | End of Lexer.StructuralChars.EndArray *)
 
-  (* type t = Values.t array *)
-  type t = Values.t list
+  type t = Values.t array
+  (* type t = Values.t list *)
 
   let add value array =
     value :: array
@@ -102,8 +103,8 @@ module Arrays = struct
       | Tokens.StructuralChar StructuralChars.EndArray :: tail -> rev_array_list, tail
       | Tokens.StructuralChar StructuralChars.ValueSeparator :: tail -> begin
         match Values.of_tokens tail with
-        | None, _ -> open_end "array"
-        | Some v, next_token -> parse_aux next_token @@ add v rev_array_list
+        | Values.Empty, _ -> open_end "array"
+        | v, next_token -> parse_aux next_token @@ add v rev_array_list
       end
       | head :: _ -> Tokens.unexpected head
     in
@@ -114,9 +115,12 @@ end
 
 type json = Values.t
 
-let parse (lst : Tokens.t list) : json =
-  let rec structure = function
-  | Tokens.StructuralChar c :: tail ->
-  | head :: tail -> Tokens.raise head
-  | [] ->
-  in
+let rec parse (lst : Tokens.t list) : json =
+  match lst with
+  | [] -> Values.Empty
+  | _ -> begin
+    match Values.of_tokens lst with
+    | _, head :: tail -> failwith "unexpected non-whitespace character after JSON data"
+    | v, _ -> v
+  end
+

@@ -83,7 +83,7 @@ module Numbers = struct
     exp : string;
   } *)
   
-  let scan str start : (t * int) option =
+  let scan str start =
     if not @@ is str.[start] then
       None
     else begin
@@ -123,10 +123,10 @@ module Numbers = struct
       Some (String.sub str start exp_end, exp_end + 1)
     end
 
-  let to_string n =
+  (* let to_string n =
     n.int
     ^ if String.is_empty n.frac then "" else ("." ^ n.frac)
-    ^ if String.is_empty n.exp  then "" else ("e" ^ n.exp)
+    ^ if String.is_empty n.exp  then "" else ("e" ^ n.exp) *)
 end
 
 module StructuralChars = struct
