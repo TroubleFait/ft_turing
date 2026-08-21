@@ -1,4 +1,6 @@
-SOURCES = main.ml
+SOURCES =	execution/turing_machine.ml
+SOURCES +=	main.ml
+
 
 RESULT = ft_turing
 
@@ -6,16 +8,16 @@ _ := $(shell test -e OCamlMakefile || cp $(shell opam var lib)/ocaml-makefile/OC
 
 .PHONY: all g ft_clean fclean re
 
-all: native-code
+all:
+	@$(MAKE) --no-print-directory native-code OCAMLFLAGS="-warn-error A"
 
 g:
-	@$(MAKE) --no-print-directory native-code OCAMLFLAGS="-g"
+	@$(MAKE) --no-print-directory native-code OCAMLFLAGS="-warn-error A -g"
 
-ft_clean: mostlyclean
+ft_clean: cleanup
 	@find . \( -iname "*.cm*" -o -iname "*.o" \) -print -delete
 
 fclean: ft_clean
-	@rm -f OCamlMakefile
 	@rm $(RESULT)
 
 re: fclean all
