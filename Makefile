@@ -18,7 +18,7 @@ ft_clean: cleanup
 	@find . \( -iname "*.cm*" -o -iname "*.o" \) -print -delete
 
 fclean: ft_clean
-	@rm $(RESULT)
+	@rm -rf $(RESULT)
 
 re: fclean all
 

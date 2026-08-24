@@ -25,6 +25,7 @@ type machine = {
 	tape: string;
 	index: int;
 	state: string;
+	last_change: machine option;
 }
 
 val tape_to_str   : ?window_size:int -> machine -> string

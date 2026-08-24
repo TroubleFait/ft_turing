@@ -21,7 +21,7 @@ let () =
 	try begin
 		let help, json_file, input = fetch_argv () in
 		if help then print_usage ();
-		Printf.printf "%s\n" (Turing_machine.start_machine "");
+		Printf.printf "%s\n" (Turing_machine.start_machine "AabB");
 		(* let machine_spec = Parser.parse json_file in *)
 		(* Parse the JSON file and input *)
 	end with

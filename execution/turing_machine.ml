@@ -15,8 +15,8 @@ let action_to_int = function
 	| Right -> 1
 
 let action_to_str = function
-  | Left -> "LEFT"
-  | Right -> "RIGHT"
+	| Left -> "LEFT"
+	| Right -> "RIGHT"
 
 type transition = {
 	read: char;
@@ -40,6 +40,7 @@ type machine = {
 	tape: string;
 	index: int;
 	state: string;
+	last_change: machine option;
 }
 
 let dicti = {
@@ -47,9 +48,25 @@ let dicti = {
 	alphabet= "1.-=";
 	blank = '.';
 	states = [ "scanright"; "eraseone"; "subone"; "skip"; "HALT" ];
-	initial = "scanright";
+	initial = "loop1";
 	finals = [ "HALT" ];
 	transitions = [
+		("loop1", [
+			{ read= 'A'; to_state= "loop1"; write= 'A'; action= Right};
+			{ read= 'a'; to_state= "loop1"; write= '1'; action= Right};
+			{ read= '1'; to_state= "loop1"; write= '1'; action= Right};
+			{ read= 'b'; to_state= "loop1"; write= '2'; action= Right};
+			{ read= '2'; to_state= "loop1"; write= '2'; action= Right};
+			{ read= 'B'; to_state= "loop2"; write= 'B'; action= Left};
+		]);
+		("loop2", [
+			{ read= 'B'; to_state= "loop2"; write= 'B'; action= Left};
+			{ read= 'b'; to_state= "loop2"; write= 'b'; action= Left};
+			{ read= '2'; to_state= "loop2"; write= '2'; action= Left};
+			{ read= 'a'; to_state= "loop2"; write= 'a'; action= Left};
+			{ read= '1'; to_state= "loop2"; write= '1'; action= Left};
+			{ read= 'A'; to_state= "loop1"; write= 'A'; action= Right};
+		]);
 		("scanright", [
 			{ read= '.'; to_state= "scanright"; write= '.'; action= Right};
 			{ read= '1'; to_state= "scanright"; write= '1'; action= Right};
@@ -106,39 +123,57 @@ let rec get_transition_lst (machine:machine) : transition list =
 
 let get_transition machine = machine |> get_transition_lst |> get_transition_single machine
 
-let check_bounds (transition: transition) (machine: machine) : machine =
-	match transition.action with
-	| Left when machine.index = 0 -> begin
-		match machine.tape.[0] with
-		| c when c = machine.rules.blank && transition.to_state = machine.state -> raise (Endless_loop (0, "Left"))
-		| _ -> { machine with index = 1; tape = char_to_string machine.rules.blank ^ machine.tape } end
-	| Right when machine.index >= (String.length machine.tape - 1) -> begin
-		match machine.tape.[(String.length machine.tape) - 1] with
-		| c when c = machine.rules.blank && transition.to_state = machine.state -> raise (Endless_loop (machine.index, "Right"))
-		| _ -> { machine with tape = machine.tape ^ char_to_string machine.rules.blank } end
-	| _ -> machine
-
 let write_cell (transition: transition) (machine: machine) : machine =
 		{
 			machine with
-			tape = String.mapi (fun i c -> if i = machine.index then transition.write else c) machine.tape;
+			tape = begin match machine.last_change with
+				| None -> raise (Endless_loop (machine.index, "No last change (Impossible to happen)"))
+				| Some last_change -> last_change.tape end;
 			index = machine.index + (action_to_int transition.action);
 			state = transition.to_state;
 		}
+
+let check_bounds (transition: transition) (machine: machine) : machine =
+(* 	Printf.printf "Checking loop: %s\n" (match machine.last_change with *)
+(* 	| None -> "None" *)
+(* 	| Some old -> Printf.sprintf "Some {index=%d; state=%s; tape='%s'}" old.index old.state old.tape); *)
+	match transition.action with
+	| Left when machine.index = 0 -> begin
+		match machine.tape.[0] with
+		| c when c = machine.rules.blank && transition.to_state = machine.state -> raise (Endless_loop (0, "Infinite Left"))
+		| _ -> { machine with index = 1; tape = char_to_string machine.rules.blank ^ machine.tape } end
+	| Right when machine.index >= (String.length machine.tape - 1) -> begin
+		match machine.tape.[(String.length machine.tape) - 1] with
+		| c when c = machine.rules.blank && transition.to_state = machine.state -> raise (Endless_loop (machine.index, "Infinite Right"))
+		| _ -> { machine with tape = machine.tape ^ char_to_string machine.rules.blank } end
+	| _ -> machine
+
+let check_loop (transition:transition) (machine: machine) : machine =
+	let new_last_change () = Some { machine with
+    tape = String.mapi (fun i c -> if i = machine.index then transition.write else c) machine.tape;
+    last_change = None }
+  in
+
+  match machine.last_change with
+  | None -> { machine with last_change = Some machine }
+  | Some last_change when last_change.index = machine.index && last_change.state = transition.to_state &&
+      last_change.tape = machine.tape -> raise (Endless_loop (machine.index, "State and tape unchanged since last turn"))
+  | _ -> if machine.tape.[machine.index] <> transition.write then {
+      machine with last_change = new_last_change () } else machine
 
 let execute_cell (machine : machine) : machine =
 	let halt_machine = { machine with state = List.hd machine.rules.finals } in
 	try begin
 		let transition = get_transition machine in
 		print_step ~window_size:50 machine transition;
-		check_bounds transition machine |> write_cell transition
+		check_loop transition machine |> check_bounds transition |> write_cell transition
 	end with
 		| Transition_not_found (state) -> print_err "Transition `%s' not found\n" state;
 			halt_machine
 		| Symbol_not_in_transition (symbol, state) -> print_err "Case `%c' not handled in transition `%s' in tape %s\n"
 			symbol state (tape_to_str machine);
 			halt_machine
-		| Endless_loop (index, direction) -> print_err "Endless loop detected at index %d when moving %s\n" index direction;
+		| Endless_loop (index, direction) -> print_err "Endless loop detected at index %d; reason %s\n" index direction;
 			halt_machine
 
 let start_machine (input : string) : string =
@@ -151,4 +186,5 @@ let start_machine (input : string) : string =
 		tape = if input = "" then char_to_string dicti.blank else input;
 		index = 0;
 		state = dicti.initial;
+		last_change = None;
 	}
