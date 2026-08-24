@@ -1,5 +1,9 @@
 let char_to_string c = String.make 1 c
 
+exception Symbol_not_in_transition of char * string
+exception Transition_not_found of string
+exception Endless_loop of int * string
+
 let print_err fmt =
 	Printf.printf "%!";
 	Printf.eprintf ("\027[31m" ^^ fmt ^^ "\027[0m")
@@ -86,57 +90,65 @@ let print_tape ?(window_size = 20) (machine: machine) : unit =
 
 let print_step ?(window_size = 20) (machine: machine) (transition:transition) : unit =
 	print_tape ~window_size machine;
-	Printf.printf "(%s, %c) -> (%s, %c, %s)\n" machine.state machine.tape.[machine.index] transition.to_state
+	Printf.printf "i: %d (%s, %c) -> (%s, %c, %s)\n" machine.index machine.state machine.tape.[machine.index] transition.to_state
 		transition.write (action_to_str transition.action)
-
-exception Symbol_not_in_transition of char * string
 
 let rec get_transition_single (machine: machine) (transitions: transition list) : transition =
 	match transitions with
-		| [] -> raise (Symbol_not_in_transition (machine.tape.[machine.index], machine.state))
-		| h::t -> if machine.tape.[machine.index] = h.read then h else get_transition_single machine t
+	| [] -> raise (Symbol_not_in_transition (machine.tape.[machine.index], machine.state))
+	| h::t -> (* Printf.printf "Here2: %d" machine.index; *) if machine.tape.[machine.index] = h.read then h else get_transition_single machine t
 
-exception Transition_not_found of string
 
 let rec get_transition_lst (machine:machine) : transition list =
 	match List.assoc_opt machine.state machine.rules.transitions with
-		| None -> raise (Transition_not_found machine.state)
-		| Some lst -> lst
+	| None -> raise (Transition_not_found machine.state)
+	| Some lst -> lst
 
 let get_transition machine = machine |> get_transition_lst |> get_transition_single machine
 
 let check_bounds (transition: transition) (machine: machine) : machine =
 	match transition.action with
-		| Left when machine.index = 0 -> { machine with index = 1; tape = char_to_string machine.rules.blank ^ machine.tape }
-		| Right when machine.index = String.length machine.tape -> { machine with tape = machine.tape ^ char_to_string machine.rules.blank }
-		| _ -> machine
+	| Left when machine.index = 0 -> begin
+		match machine.tape.[0] with
+		| c when c = machine.rules.blank && transition.to_state = machine.state -> raise (Endless_loop (0, "Left"))
+		| _ -> { machine with index = 1; tape = char_to_string machine.rules.blank ^ machine.tape } end
+	| Right when machine.index >= (String.length machine.tape - 1) -> begin
+		match machine.tape.[(String.length machine.tape) - 1] with
+		| c when c = machine.rules.blank && transition.to_state = machine.state -> raise (Endless_loop (machine.index, "Right"))
+		| _ -> { machine with tape = machine.tape ^ char_to_string machine.rules.blank } end
+	| _ -> machine
+
+let write_cell (transition: transition) (machine: machine) : machine =
+		{
+			machine with
+			tape = String.mapi (fun i c -> if i = machine.index then transition.write else c) machine.tape;
+			index = machine.index + (action_to_int transition.action);
+			state = transition.to_state;
+		}
 
 let execute_cell (machine : machine) : machine =
 	let halt_machine = { machine with state = List.hd machine.rules.finals } in
 	try begin
 		let transition = get_transition machine in
 		print_step ~window_size:50 machine transition;
-		{
-			machine with
-			tape = String.mapi (fun i c -> if i = machine.index then transition.write else c) machine.tape;
-			index = machine.index + (action_to_int transition.action);
-			state = transition.to_state;
-		} |> check_bounds transition
+		check_bounds transition machine |> write_cell transition
 	end with
-		| Symbol_not_in_transition (symbol, state) -> print_err "Case %c not handled in transition `%s' in tape %s\n"
+		| Transition_not_found (state) -> print_err "Transition `%s' not found\n" state;
+			halt_machine
+		| Symbol_not_in_transition (symbol, state) -> print_err "Case `%c' not handled in transition `%s' in tape %s\n"
 			symbol state (tape_to_str machine);
 			halt_machine
-		| Transition_not_found (state) -> print_err "Transition `%s' not found\n" state;
+		| Endless_loop (index, direction) -> print_err "Endless loop detected at index %d when moving %s\n" index direction;
 			halt_machine
 
 let start_machine (input : string) : string =
 	let rec go (machine : machine) : string =
 		match List.mem machine.state machine.rules.finals with
-			| true -> machine.tape
-			| false -> execute_cell machine |> go
+		| true -> machine.tape
+		| false -> execute_cell machine |> go
 	in go {
 		rules = dicti;
-		tape = input;
+		tape = if input = "" then char_to_string dicti.blank else input;
 		index = 0;
 		state = dicti.initial;
 	}
