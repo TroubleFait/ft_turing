@@ -3,7 +3,7 @@ module LiteralNames = struct
   | Bool of bool
   | Null
 
-  let scan str start : t option =
+  let scan str start : (t * int) option =
     let starts_with sub =
       let len = String.length sub in
       let rec loop i =
@@ -14,11 +14,11 @@ module LiteralNames = struct
       loop 0
     in
     if starts_with "false" then
-      Some (Bool false)
+      Some ((Bool false), start + String.length "false")
     else if starts_with "null" then
-      Some Null
+      Some (Null, start + String.length "null")
     else if starts_with "true" then
-      Some (Bool true)
+      Some ((Bool true), start + String.length "true")
     else
       None
 
@@ -32,6 +32,7 @@ module Strings = struct
     if str.[start] <> '"' then
       None
     else begin
+      let len = String.length str in
       let is_escaped pos =
         let rec count_escape_chars pos acc =
           if str.[pos - 1] = '\\' then
@@ -40,17 +41,19 @@ module Strings = struct
         in
         (count_escape_chars pos 0) mod 2 <> 0
       in
-      let rec find_end from =
+      let rec find_end_quote from =
+        if from >= len then None else
         match String.index_from_opt str from '"' with
         | None -> None
-        | Some v when is_escaped v -> find_end (v + 1)
+        | Some v when is_escaped v -> find_end_quote (v + 1)
         | Some v -> Some v
       in
-      let end_pos = match find_end start with
-        | Some v -> v
+      let end_pos =
+        match find_end_quote (start + 1) with
+        | Some v -> v + 1
         | None -> failwith "malformed string: no ending quote"
       in
-      Some (String.sub str start end_pos, end_pos + 1)
+      Some (String.sub str start (end_pos - start), end_pos)
     end
 end
 
@@ -83,7 +86,7 @@ module Numbers = struct
     exp : string;
   } *)
   
-  let scan str start =
+  let scan str start : (string * int) option =
     if not @@ is str.[start] then
       None
     else begin
@@ -95,14 +98,14 @@ module Numbers = struct
           str
         with Some v -> v | None -> failwith "truncated file"
       in
-      let int_end = match token_of str.[start] with Some Minus -> 1 | _ -> 0
+      let int_end = begin match token_of str.[start] with Some Minus -> start + 1 | _ -> start end
         |> find_end_digits
       in
       let frac_end = match token_of str.[int_end] with
         | Some DecimalPoint -> begin
           match token_of str.[int_end + 1] with
           | Some Zero | Some (Digit19 _) -> find_end_digits (int_end + 1)
-          | _ -> failwith "unterminated fractional number"
+          | _ -> failwith ("unterminated fractional number: `" ^ String.sub str start (int_end - start) ^ "'")
         end
         | _ -> int_end
       in
@@ -110,7 +113,7 @@ module Numbers = struct
         | Some E -> begin
           match token_of str.[frac_end + 1] with
           | Some Zero | Some (Digit19 _) -> find_end_digits (frac_end + 1)
-          | _ -> failwith "exponent part is missing a number"
+          | _ -> failwith ("exponent part is missing a number: `" ^ String.sub str start (frac_end - start) ^ "'")
         end
         | _ -> frac_end
       in
@@ -120,7 +123,7 @@ module Numbers = struct
         num = String.sub str start frac_end;
         exp = String.sub str (frac_end + 1) exp_end;
       }, exp_end + 1) *)
-      Some (String.sub str start exp_end, exp_end + 1)
+      Some (String.sub str start (exp_end - start), exp_end)
     end
 
   (* let to_string n =
@@ -138,7 +141,9 @@ module StructuralChars = struct
   | NameSeparator
   | ValueSeparator
 
-  let of_char = function
+  let of_char c =
+    match c with
+    (* function *)
   | '[' -> Some BeginArray
   | ']' -> Some EndArray
   (* | '{' -> Some BeginObject
@@ -175,24 +180,25 @@ end
 let skip_whitespaces str len start =
   let is_whitespace = function ' ' | '\t' | '\n' | '\r' -> true | _ -> false in
   match String.find_first_index (fun c -> not @@ is_whitespace c) ~start str with
-  | Some i -> i
+  | Some stop -> stop
   | None -> len
 
-let rec read_through str len i =
+let rec read_through str len start =
+  if start >= len then [] else
   let new_token, new_pos =
-    match StructuralChars.of_char str.[i] with
-    | Some c -> Tokens.StructuralChar c, (i + 1)
+    match StructuralChars.of_char str.[start] with
+    | Some c -> Tokens.StructuralChar c, (start + 1)
     | None ->
-    match LiteralNames.scan str i with
-    | Some l -> Tokens.LiteralName l, (i + 1)
+    match LiteralNames.scan str start with
+    | Some (l, next_pos) -> Tokens.LiteralName l, next_pos
     | None ->
-    match Strings.scan str i with
-    | Some (s, np) -> Tokens.String s, np
+    match Strings.scan str start with
+    | Some (s, next_pos) -> Tokens.String s, next_pos
     | None ->
-    match Numbers.scan str i with
-    | Some (n, np) -> Tokens.Number n, np
+    match Numbers.scan str start with
+    | Some (n, next_pos) -> Tokens.Number n, next_pos
     | None ->
-    failwith "invalid token"
+    failwith ("invalid token: `" ^ String.sub str start (1) ^ "'")
   in
   new_token :: read_through str len (skip_whitespaces str len new_pos)
 

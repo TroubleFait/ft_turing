@@ -1,10 +1,13 @@
 module LiteralNames :
   sig
     type t = Bool of bool | Null
-    val scan : string -> int -> t option
+    val scan : string -> int -> (t * int) option
     val to_string : t -> string
   end
-module Strings : sig val scan : string -> int -> (string * int) option end
+module Strings :
+  sig
+    val scan : string -> int -> (string * int) option
+  end
 module Numbers :
   sig
     type token = DecimalPoint | Digit19 of char | E | Minus | Plus | Zero
