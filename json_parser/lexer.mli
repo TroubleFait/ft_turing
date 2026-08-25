@@ -17,7 +17,7 @@ module Numbers :
   end
 module StructuralChars :
   sig
-    type t = BeginArray | EndArray | NameSeparator | ValueSeparator
+    type t = BeginArray | EndArray | BeginObject | EndObject | NameSeparator | ValueSeparator
     val of_char : char -> t option
     val to_string : t -> string
   end

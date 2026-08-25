@@ -57,7 +57,7 @@ module Tokens :
   sig
     type t =
       Lexer.Tokens.t =
-        StructuralChar of Lexer.StructuralChars.t
+      | StructuralChar of Lexer.StructuralChars.t
       | String of string
       | Number of string
       | LiteralName of Lexer.LiteralNames.t
@@ -69,7 +69,8 @@ module Tokens :
 val number_of_token : string -> float
 
 type value_t =
-    Array of value_t array
+  | Object of value_t StringMap.t
+  | Array of value_t array
   | Number of float
   | String of string
   | Bool of bool
@@ -78,8 +79,12 @@ type value_t =
 val value_of_literal_name : Lexer.LiteralNames.t -> value_t
 val value_of_tokens : Tokens.t list -> value_t * Tokens.t list
 
+type object_t = value_t StringMap.t
+val object_add : string -> value_t -> object_t -> object_t
+val object_of_tokens : Tokens.t list -> object_t * Tokens.t list
+
 type array_t = value_t array
-val array_add : 'a -> 'a list -> 'a list
+val array_add : value_t -> value_t list -> value_t list
 val array_of_tokens : Tokens.t list -> array_t * Tokens.t list
 
 type json = value_t

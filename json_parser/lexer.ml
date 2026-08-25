@@ -27,7 +27,7 @@ module LiteralNames = struct
   | Null   -> "null"
 end
 
-module Strings = struct
+module Strings = struct     (* TODO: remove quotes around string, un-escape quotes inside, un-escape other characters like '\n'? *)
   let scan str start : (string * int) option =
     if str.[start] <> '"' then
       None
@@ -136,18 +136,17 @@ module StructuralChars = struct
   type t =
   | BeginArray
   | EndArray
-  (* | BeginObject
-  | EndObject *)
+  | BeginObject
+  | EndObject
   | NameSeparator
   | ValueSeparator
 
-  let of_char c =
-    match c with
-    (* function *)
+  let of_char =
+    function
   | '[' -> Some BeginArray
   | ']' -> Some EndArray
-  (* | '{' -> Some BeginObject
-  | '}' -> Some EndObject *)
+  | '{' -> Some BeginObject
+  | '}' -> Some EndObject
   | ':' -> Some NameSeparator
   | ',' -> Some ValueSeparator
   |  _  -> None
@@ -155,8 +154,8 @@ module StructuralChars = struct
   let to_string = function
   | BeginArray     -> "["
   | EndArray       -> "]"
-  (* | BeginObject    -> "{"
-  | EndObject      -> "}" *)
+  | BeginObject    -> "{"
+  | EndObject      -> "}"
   | NameSeparator  -> ":"
   | ValueSeparator -> ","
 end
