@@ -1,34 +1,56 @@
-exception Not_enough_args
-exception Too_many_args
+module PrintJSON = struct
+  type indent_t = int
 
-let print_usage () =
-	Printf.printf
-"usage: ft_turing [-h] jsonfile input
+  let indent_to_string indent = String.make indent '\t'
 
-positional arguments:
-  jsonfile            json description of the machine
+  let line_of_string indent str = indent_to_string indent ^ str ^ "\n"
 
-  input               input of the machine
+  let rec object_to_string indent obj =
+    let len = Parser.StringMap.cardinal obj in
+    let arr = Parser.StringMap.to_seq obj |> Array.of_seq in
+    let rec loop i =
+      if i >= len then (line_of_string indent "}") else
+      let value_str = to_string (indent + 2) @@ snd arr.(i) in
+      let str = line_of_string (indent + 1) @@ fst arr.(i) ^ ":\n" ^ value_str in
+      (String.sub str 0 @@ String.length str - 1) ^ ",\n"
+        ^ loop (i + 1)
+    in
+    (line_of_string indent "{") ^ loop 0
 
-optional arguments:
-  -h, --help          show this help message and exit\n"
+  and array_to_string indent arr =
+    let len = Array.length arr in
+    let rec loop i =
+      if i >= len then (line_of_string indent "]") else
+      let str = to_string (indent + 1) arr.(i) in
+      (String.sub str 0 @@ String.length str - 1) ^ ",\n"
+        ^ loop (i + 1)
+    in
+    (line_of_string indent "[") ^ loop 0
 
-let fetch_argv () : (bool * string * string) =
-	let len = Array.length Sys.argv in
-	if len < 2 then raise Not_enough_args;
-	let has_help = Sys.argv.(1) = "-h" || Sys.argv.(1) = "--help" in
-	if len < (if has_help then 4 else 3) then raise Not_enough_args;
-	if len > (if has_help then 4 else 3) then raise Too_many_args;
-	let json_file = Sys.argv.(if has_help then 2 else 1) in
-	let input     = Sys.argv.(if has_help then 3 else 2) in
-	(has_help, json_file, input)
+  and to_string indent (data : Parser.json) =
+    match data with
+    | Empty -> ""
+    | Object o -> object_to_string indent o
+    | Array a  -> array_to_string  indent a
+    | Number f -> line_of_string   indent @@ string_of_float f
+    | String s -> line_of_string   indent s
+    | Bool b   -> line_of_string   indent @@ string_of_bool b
+    | Null     -> line_of_string   indent "null"
+
+  let print (data : Parser.json) =
+    print_string @@ to_string 0 data
+end
 
 let () =
-	try begin
-		let help, json_file, input = fetch_argv () in
-		if help then print_usage ();
-	  (* let machine_spec = Parser.parse json_file in *)
-		(* Parse the JSON file and input *)
-	end with
-	| Not_enough_args
-	| Too_many_args -> print_usage (); exit 1
+  if Array.length Sys.argv <> 2 then begin
+    print_endline "Usage:";
+    print_endline (Sys.argv.(0) ^ " <file.json>")
+  end
+  else
+    try begin
+      let json_str = Read_file.string_of_file Sys.argv.(1) in
+      let data = Parser.parse @@ Lexer.lex json_str in
+      PrintJSON.print data
+    end with
+    | Sys_error message
+    | Failure message -> prerr_endline message; exit 1

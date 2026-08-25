@@ -1,4 +1,10 @@
-SOURCES = main.ml
+mkmodule = $(addprefix $(1), $(addsuffix .mli, $(2)) $(addsuffix .ml, $(2)))
+
+PARSER_DIR = json_parser/
+PARSER = read_file lexer parser
+
+SOURCES = $(call mkmodule, $(PARSER_DIR), $(PARSER))
+SOURCES += main.ml
 
 RESULT = ft_turing
 
