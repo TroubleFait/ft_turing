@@ -3,6 +3,10 @@
 
 ---
 ## Description
+    The goal of this project is to write a program able to simulate a single headed, single tape Turing machine from a 
+machine description provided in json.
+This project is written in functionnal OCaml. It is a good occasion to experiment clever type designs and a smart 
+functionnal approach to your program.
 ---
 ## Instructions
 ```
@@ -12,10 +16,12 @@ Then run the program with the following command:
 ```
 ./ft_turing [-h/--help] <path_to_machine_spec.json> <input>
 ```
-### Controls
 ---
 ## Resources
  - [JSON notation](https://datatracker.ietf.org/doc/html/rfc7159)
+ - [Ocaml Introduction](https://courses.cs.cornell.edu/cs3110/2021sp/textbook/)
+ - [Ocaml Manual](https://ocaml.org/manual/5.5/index.html)
+ - [Ocaml Batteries lib](https://ocaml-batteries-team.github.io/batteries-included/hdoc2/)
 
 ### IA uses
 

@@ -1,7 +1,8 @@
 *.pdf
 ft_turing
 *.o
-*.cm[ix]
+*.cm[ixo]
+._[nb]cdi
 .idea
 ._d
 .vscode

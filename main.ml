@@ -1,3 +1,4 @@
+exception Invalid_args_count
 module PrintJSON = struct
   type indent_t = int
 
@@ -41,16 +42,32 @@ module PrintJSON = struct
     print_string @@ to_string 0 data
 end
 
+let print_usage () =
+	Printf.printf
+"usage: ft_turing [-h] jsonfile input
+
+positional arguments:
+  jsonfile            json description of the machine
+
+  input               input of the machine
+
+optional arguments:
+  -h, --help          show this help message and exit\n"
+
+let fetch_argv () : (bool * string * string) = match Sys.argv with (* (has_help, json_file, input) *)
+	| [| _; "-h"; json_file; input|] | [| _; "--help"; json_file; input|] -> (true, json_file, input)
+	| [| _; json_file; input |] -> (false, json_file, input)
+	| _ -> raise Invalid_args_count
+
 let () =
-  if Array.length Sys.argv <> 2 then begin
-    print_endline "Usage:";
-    print_endline (Sys.argv.(0) ^ " <file.json>")
-  end
-  else
-    try begin
-      let json_str = Read_file.string_of_file Sys.argv.(1) in
-      let data = Parser.parse @@ Lexer.lex json_str in
-      PrintJSON.print data
-    end with
-    | Sys_error message
-    | Failure message -> prerr_endline message; exit 1
+	try begin
+		let help, json_file, input = fetch_argv () in
+		if help then print_usage ();
+    let json_str = Read_file.string_of_file json_file in
+    Parser.parse @@ Lexer.lex json_str
+		|> Rules_parser.parse_rules |> Rules_parser.validate_rules
+		|> Turing_machine.start_machine input |> Printf.printf "%s\n";
+	end with
+  | Sys_error message
+  | Failure message -> prerr_endline message; exit 1
+	| Invalid_args_count -> print_usage (); exit 1
