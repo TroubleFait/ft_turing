@@ -1,4 +1,5 @@
 exception Invalid_args_count
+
 module PrintJSON = struct
   type indent_t = int
 
@@ -65,9 +66,12 @@ let () =
 		if help then print_usage ();
     let json_str = Read_file.string_of_file json_file in
     Parser.parse @@ Lexer.lex json_str
-		|> Rules_parser.parse_rules |> Rules_parser.validate_rules
-		|> Turing_machine.start_machine input |> Printf.printf "%s\n";
+		|> Rules_parser.parse_rules |> Rules_parser.validate_rules |> Rules_parser.validate_input input
+		|> Turing_machine.start_machine input |> Printf.printf "%s\n"
 	end with
   | Sys_error message
   | Failure message -> prerr_endline message; exit 1
 	| Invalid_args_count -> print_usage (); exit 1
+	| Rules_parser.Invalid_struct -> Rules_parser.print_invalid_struct (); exit 1
+	| Parser.Open_end msg -> Utils.print_err "%s\n" msg; exit 1
+	| Parser.Tokens.Unexpected msg -> Utils.print_err "Unexpected Token: %s\n" msg; exit 1
