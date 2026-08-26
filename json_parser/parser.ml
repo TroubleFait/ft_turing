@@ -3,7 +3,8 @@ module StringMap = Map.Make(String)
 exception Open_end of string
 
 let raise_open_end message =
-  raise @@ Open_end ("Open " ^ message ^ " at end of file")
+  raise @@ Open_end (Printf.sprintf "Open %s at end of file" message) 
+(*  raise @@ Open_end ("Open " ^^ message ^^ " at end of file") *)
 
 module Tokens = struct
   include Lexer.Tokens

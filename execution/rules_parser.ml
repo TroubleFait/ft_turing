@@ -4,6 +4,25 @@ end
 
 module CharMap = Map.Make(Char)
 
+let print_invalid_struct () = Printf.printf "Invalid object structure; Expected {
+	name: string;
+	alphabet: string list;
+	blank: string;
+	states: string list;
+	initial: string;
+	finals: string list;
+	transitions: {
+		name: [{
+			read: string;
+			to_state: string;
+			write: string;
+			action: string;
+		}]
+	}
+}\n"
+
+exception Invalid_struct
+
 type action = Left | Right
 
 let action_to_int = function
@@ -31,46 +50,51 @@ type rules = {
 	transitions: (transition CharMap.t) JSON.StringMap.t;
 }
 
-let string_of_JSON_value (empty_error:string) (invalid_type_error:string) = function
-	| JSON.String "" -> failwith empty_error
+let string_of_JSON_value ?(prefix = "") ?(empty_error = "empty") ?(invalid_type_error = "not a string") = function
+	| JSON.String "" -> failwith @@ prefix ^ empty_error
 	| JSON.String s -> s
-	| _ -> failwith invalid_type_error
+	| _ -> failwith @@ prefix ^ invalid_type_error
 
-let char_of_JSON_value ?(symbol_error = "invalid symbol") ?(invalid_type_error = "invalid symbol type") = function
+let char_of_JSON_value ?(prefix = "") ?(symbol_error = "not a char") ?(invalid_type_error = "not a string") = function
 	| JSON.String s when String.length s = 1 -> s.[0]
-	| JSON.String s -> failwith (symbol_error ^ ":`" ^ s ^ "'")
-	| _ -> failwith invalid_type_error
+	| JSON.String s -> failwith @@ prefix ^ symbol_error ^ ":`" ^ s ^ "'"
+	| _ -> failwith @@ prefix ^ invalid_type_error
 
 let action_of_JSON_value = function
 	| JSON.String "LEFT"  -> Left
 	| JSON.String "RIGHT" -> Right
-	| JSON.String s -> failwith ("Not LEFT or RIGHT: `" ^ s ^ "'")
-	| _ -> failwith "action is not a string"
+	| JSON.String s -> failwith ("action: Not LEFT or RIGHT: `" ^ s ^ "'")
+	| _ -> failwith "action: not a string"
 
 let check_binding_keys (to_compare: string list) (bindings: string list) =
+(* 	Printf.printf "to_compare keys:\t %s\n" (to_compare |> List.sort compare |> String.concat ", "); *)
+(* 	Printf.printf "checking binding keys:\t %s\n" (String.concat ", " bindings); *)
 	to_compare
 	|> List.sort compare
 	|> List.equal (=) bindings
 
-let create_name = string_of_JSON_value "empty name" "invalid name type"
+let create_name = string_of_JSON_value ~prefix:"Name: "
 
 let create_alphabet = function
+ 	| JSON.Array a when Array.length a <= 0 -> failwith "Empty alphabet"
 	| JSON.Array a -> String.init (Array.length a) (fun i -> a.(i)
-			|> char_of_JSON_value)
+			|> char_of_JSON_value ~prefix:"Alphabet: ")
 	| _ -> failwith "invalid alphabet type"
 
-let create_blank = char_of_JSON_value ~invalid_type_error:"invalid blank type"
+let create_blank = char_of_JSON_value ~prefix:"Blank: "
 
 let create_states = function
+ 	| JSON.Array a when Array.length a <= 0 -> failwith "Empty list of states"
 	| JSON.Array a -> Array.to_list a
-		|> List.map (string_of_JSON_value "empty state name" "invalid state type")
+		|> List.map (string_of_JSON_value ~prefix:"States: one is ")
 	| _ -> failwith "invalid states type"
 
-let create_initial = string_of_JSON_value "empty initial state" "invalid initial type"
+let create_initial = string_of_JSON_value ~prefix:"Initial: "
 
 let create_finals = function
-	| JSON.Array a -> Array.to_list a
-		|> List.map (string_of_JSON_value "empty final state name" "invalid final state type")
+ 	| JSON.Array a when Array.length a <= 0 -> failwith "Empty list of finals"
+	| JSON.Array a   -> Array.to_list a
+		|> List.map (string_of_JSON_value ~prefix:"Finals: one is ")
 	| _ -> failwith "invalid finals type"
 
 let create_transitions v =
@@ -78,16 +102,16 @@ let create_transitions v =
 		| JSON.Object obj
 			when JSON.StringMap.bindings obj |> List.split |> fst
 			|> check_binding_keys ["read"; "to_state"; "write"; "action"]
-			-> let read_key = char_of_JSON_value @@ JSON.StringMap.find "read" obj in
+			-> let read_key = char_of_JSON_value ~prefix:"Read: " @@ JSON.StringMap.find "read" obj in
 				CharMap.add read_key {
 					read     = read_key;
-					to_state = string_of_JSON_value "empty to_state" "invalid to_state"
-																					@@ JSON.StringMap.find "to_state" obj;
-					write    = char_of_JSON_value   @@ JSON.StringMap.find "write"    obj;
-					action   = action_of_JSON_value @@ JSON.StringMap.find "action"   obj;
+					to_state = string_of_JSON_value ~prefix:"to_state: "
+																					                @@ JSON.StringMap.find "to_state" obj;
+					write    = char_of_JSON_value ~prefix:"Write: " @@ JSON.StringMap.find "write"    obj;
+					action   = action_of_JSON_value                 @@ JSON.StringMap.find "action"   obj;
 				} acc
 		| JSON.Object _ -> failwith "invalid transition structure"
-		| _ -> failwith "invalid transition type"
+		| _ -> raise Invalid_struct
 	in
 	let charmap_of_array = function
 		| JSON.Array a -> Array.fold_left transition_of_JSON_object CharMap.empty a
@@ -115,8 +139,8 @@ let parse_rules (json: JSON.value_t) : rules =
 		when JSON.StringMap.bindings obj |> List.split |> fst
 		|> check_binding_keys ["name"; "alphabet"; "blank"; "states"; "initial"; "finals"; "transitions"]
 		-> create_rules obj
-	| JSON.Object _ -> failwith "invalid object structure"
-	| _ -> failwith "Expected an object"
+	| JSON.Object _ -> raise Invalid_struct
+	| _ -> raise Invalid_struct
 
 let validate_alphabet (alphabet: string) =
 	String.iteri (fun i c ->
@@ -124,13 +148,16 @@ let validate_alphabet (alphabet: string) =
 			failwith "duplicate symbol in alphabet"
 	) alphabet
 
-let validate_char ?(fail_msg = "unknown symbol") (alphabet: string) (char: char) =
-	String.index alphabet char |> ignore
+let validate_char ?(prefix = "") ?(fail_msg = "is not in alphabet") (alphabet: string) (char: char) =
+	try
+		String.index alphabet char |> ignore
+	with
+	| Not_found -> failwith @@ prefix ^ "`" ^ (Utils.char_to_string char) ^ "' " ^ fail_msg
 
-let validate_state (fail_msg: string) (states: string list) (state: string) =
+let validate_state ?(prefix = "") ?(fail_msg = "unknown") (states: string list) (state: string) =
 	match List.mem state states with
 	| true  -> ()
-	| false -> failwith fail_msg
+	| false -> failwith @@ prefix ^ fail_msg
 
 let validate_states (finals: string list) (transitions: string list) (states: string list) =
 	match List.equal (=) (List.sort compare states) (List.sort compare (transitions @ finals)) with
@@ -138,25 +165,31 @@ let validate_states (finals: string list) (transitions: string list) (states: st
 	| false -> failwith "mismatch between states, transitions and finals"
 
 let validate_finals (states: string list) (finals: string list) =
-	List.iter (validate_state "unknown final" states) finals
+	List.iter (validate_state ~prefix:"Finals: " states) finals
 
 let validate_transition (alphabet: string) (states: string list) (transition: transition CharMap.t) =
-	CharMap.bindings transition |> List.split |> snd
-	|> List.iter (fun v ->
-		validate_char alphabet v.read;
-		validate_state "unknown to_state" states v.to_state;
-		validate_char alphabet v.write
-	)
+	match CharMap.bindings transition |> List.split |> snd with
+	| [] -> failwith "Empty transition"
+	| lst -> List.iter (fun v ->
+			validate_char   ~prefix:"read: " alphabet v.read;
+			validate_state  ~prefix:"to_state: " states v.to_state;
+			validate_char   ~prefix:"write: " alphabet v.write;
+		) lst
 
 let validate_transitions (alphabet: string) (states: string list) (transitions: (transition CharMap.t) JSON.StringMap.t) =
-	JSON.StringMap.bindings transitions |> List.split |> snd
-	|> List.iter (validate_transition alphabet states)
+	match JSON.StringMap.bindings transitions |> List.split |> snd with
+	| [] -> failwith "transitions is empty"
+	| lst -> List.iter (validate_transition alphabet states) lst
 
 let validate_rules (rules: rules) : rules =
 	validate_alphabet    rules.alphabet;
-  validate_char        rules.alphabet rules.blank;
+  validate_char        ~fail_msg:"blank symbol is not in alphabet" rules.alphabet rules.blank;
   validate_states      rules.finals   (JSON.StringMap.bindings rules.transitions |> List.split |> fst) rules.states;
-  validate_state       "unknown initial" rules.states   rules.initial;
+  validate_state       ~prefix:"Initial: " rules.states   rules.initial;
   validate_finals      rules.states   rules.finals;
   validate_transitions rules.alphabet rules.states rules.transitions;
+  rules
+
+let validate_input (tape: string) (rules: rules) : rules =
+  String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape;
   rules

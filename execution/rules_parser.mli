@@ -7,6 +7,10 @@ module CharMap : sig
 	include Map.S with type key = char
 end
 
+exception Invalid_struct
+
+val print_invalid_struct: unit -> unit
+
 type action = Left | Right
 
 val action_to_int : action -> int
@@ -31,3 +35,4 @@ type rules = {
 
 val parse_rules : JSON.value_t -> rules
 val validate_rules : rules -> rules
+val validate_input : string -> rules -> rules

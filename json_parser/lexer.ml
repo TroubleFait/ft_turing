@@ -106,58 +106,58 @@ module Numbers = struct
   let is c = match token_of c with
   | Some Minus | Some Zero | Some Digit19 _ -> true
   | _ -> false
-
-  (* type t = {
-    (* int   : string;
-    frac  : string; *)
-    num : string;
-    exp : string;
-  } *)
   
   let scan str start : (string * int) option =
     if not @@ is str.[start] then
       None
     else begin
       let find_end_digits start =
-        match String.find_first_index (fun c -> match token_of c with
+        String.find_first_index (fun c -> match token_of c with
             | Some Zero | Some (Digit19 _) -> false
             | _ -> true)
           ~start
           str
-        with Some v -> v | None -> failwith "truncated file"
       in
-      let int_end = begin match token_of str.[start] with Some Minus -> start + 1 | _ -> start end
-        |> find_end_digits
+      let int_end int_start = begin match token_of str.[int_start] with
+        | Some Minus -> int_start + 1
+        | _ -> int_start
+        end |> find_end_digits
       in
-      let frac_end = match token_of str.[int_end] with
+      let frac_end frac_start = match token_of str.[frac_start] with
         | Some DecimalPoint -> begin
-          match token_of str.[int_end + 1] with
-          | Some Zero | Some (Digit19 _) -> find_end_digits (int_end + 1)
-          | _ -> failwith ("unterminated fractional number: `" ^ String.sub str start (int_end - start) ^ "'")
+          match token_of str.[frac_start + 1] with
+          | Some Zero | Some (Digit19 _) -> find_end_digits (frac_start + 1)
+          | _ -> failwith ("unterminated fractional number: `" ^ String.sub str start (frac_start - start) ^ "'")
         end
-        | _ -> int_end
+        | _ -> Some frac_start
       in
-      let exp_end = match token_of str.[frac_end] with
+      let exp_end exp_start = match token_of str.[exp_start] with
         | Some E -> begin
-          match token_of str.[frac_end + 1] with
-          | Some Zero | Some (Digit19 _) -> find_end_digits (frac_end + 1)
-          | _ -> failwith ("exponent part is missing a number: `" ^ String.sub str start (frac_end - start) ^ "'")
+          match token_of str.[exp_start + 1] with
+          | Some Plus | Some Minus -> begin
+	          match token_of str.[exp_start + 2] with
+	          | Some Zero | Some (Digit19 _) -> find_end_digits (exp_start + 2)
+            | _ -> failwith ("exponent part is missing a number: `" ^ String.sub str start (exp_start - start) ^ "'")
+	        end
+          | Some Zero | Some (Digit19 _) -> find_end_digits (exp_start + 1)
+          | _ -> failwith ("exponent part is missing a number: `" ^ String.sub str start (exp_start - start) ^ "'")
         end
-        | _ -> frac_end
+        | _ -> Some exp_start
       in
-      (* Some ({
-        (* int  = String.sub str start int_end;
-        frac = String.sub str (int_end + 1) frac_end; *)
-        num = String.sub str start frac_end;
-        exp = String.sub str (frac_end + 1) exp_end;
-      }, exp_end + 1) *)
-      Some (String.sub str start (exp_end - start), exp_end)
-    end
 
-  (* let to_string n =
-    n.int
-    ^ if String.is_empty n.frac then "" else ("." ^ n.frac)
-    ^ if String.is_empty n.exp  then "" else ("e" ^ n.exp) *)
+			let number_end =
+				match int_end start with
+				| None -> String.length str
+				| Some v ->
+				match frac_end v with
+				| None -> String.length str
+				| Some v ->
+				match exp_end v with
+				| None -> String.length str
+				| Some v -> v
+			in
+			Some (String.sub str start (number_end - start), number_end)
+    end
 end
 
 module StructuralChars = struct

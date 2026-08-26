@@ -5,7 +5,8 @@ PARSER = read_file lexer parser
 EXECUTION_DIR = execution/
 EXECUTION = rules_parser turing_machine
 
-SOURCES = $(call mkmodule, $(PARSER_DIR), $(PARSER))
+SOURCES = $(call mkmodule, ./, utils)
+SOURCES += $(call mkmodule, $(PARSER_DIR), $(PARSER))
 SOURCES += $(call mkmodule, $(EXECUTION_DIR), $(EXECUTION))
 SOURCES += main.ml
 
