@@ -28,32 +28,65 @@ module LiteralNames = struct
 end
 
 module Strings = struct     (* TODO: remove quotes around string, un-escape quotes inside, un-escape other characters like '\n'? *)
+  (* let string_of_utf_16_char my_char =
+    let buff = Buffer.create 4 in
+    Buffer.add_utf_16_uchar buff my_char; (* add_utf_16le_uchar or add_utf_16be_uchar? *)
+    Buffer.contents buff *)
+
+  let string_of_utf_8_char my_char =
+    let buff = Buffer.create 4 in
+    Buffer.add_utf_8_uchar buff my_char;
+    Buffer.contents buff
+
+  let int_of_sequence s i = ("0x" ^ (String.sub s i 4)) |> int_of_string
+
+  let utf_8_of_utf_16_surrogate h l =
+    (h - 0xD800) * 0x400 + (l - 0xDC00) + 0x10000
+
+  let unescape_sequence s i =
+    let len = String.length s in
+    if i + 4 >= len then
+      failwith ("malformed string: incomplete escape sequence: `" ^ (String.sub s (i - 2) (len - i + 2)) ^ "'")
+    else begin
+      let seq_int, end_pos =
+        if len > i + 4 + 6 && String.sub s (i + 4) 2 = "\\u" then
+          (utf_8_of_utf_16_surrogate (int_of_sequence s i) (int_of_sequence s (i + 6))), i + 10
+        else
+          (int_of_sequence s i), i + 4
+      in
+      (seq_int |> Uchar.of_int |> string_of_utf_8_char), end_pos
+    end
+
+  let unescape_char s i = match s.[i] with
+  | '"' | '\\' | '/' -> String.sub s i 1, (i + 1)
+  | 'b' -> "\b",   (i + 1)
+  | 'f' -> "\x0C", (i + 1)
+  | 'n' -> "\n",   (i + 1)
+  | 'r' -> "\r",   (i + 1)
+  | 't' -> "\t",   (i + 1)
+  | 'u' -> unescape_sequence s (i + 1)
+  |  _  -> failwith ("malformed string: invalid escape character: `" ^ (String.sub s (i - 1) 2) ^ "'")
+
   let scan str start : (string * int) option =
     if str.[start] <> '"' then
       None
     else begin
       let len = String.length str in
-      let is_escaped pos =
-        let rec count_escape_chars pos acc =
-          if str.[pos - 1] = '\\' then
-            count_escape_chars (pos - 1) (acc + 1)
-          else acc
-        in
-        (count_escape_chars pos 0) mod 2 <> 0
+      let rec go acc = function
+      | i when i >= len     -> failwith "malformed string: no ending quote"
+      | i when str.[i] = '"'  -> acc, i
+      | i when str.[i] = '\\' -> begin
+        if (i + 1) >= len then
+          failwith "incomplete string"
+        else
+          let c, next_pos = unescape_char str (i + 1) in
+          go (c :: acc) next_pos
+      end
+      | i -> go (String.sub str i 1 :: acc) (i + 1)
       in
-      let rec find_end_quote from =
-        if from >= len then None else
-        match String.index_from_opt str from '"' with
-        | None -> None
-        | Some v when is_escaped v -> find_end_quote (v + 1)
-        | Some v -> Some v
-      in
-      let end_pos =
-        match find_end_quote (start + 1) with
-        | Some v -> v + 1
-        | None -> failwith "malformed string: no ending quote"
-      in
-      Some (String.sub str start (end_pos - start), end_pos)
+      let str_rev_lst, end_pos = go [] (start + 1) in
+      let s = str_rev_lst |> List.rev |> String.concat "" in
+      Some (s, end_pos + 1)
     end
 end
 
