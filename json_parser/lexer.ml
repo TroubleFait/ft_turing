@@ -27,12 +27,7 @@ module LiteralNames = struct
   | Null   -> "null"
 end
 
-module Strings = struct     (* TODO: remove quotes around string, un-escape quotes inside, un-escape other characters like '\n'? *)
-  (* let string_of_utf_16_char my_char =
-    let buff = Buffer.create 4 in
-    Buffer.add_utf_16_uchar buff my_char; (* add_utf_16le_uchar or add_utf_16be_uchar? *)
-    Buffer.contents buff *)
-
+module Strings = struct
   let string_of_utf_8_char my_char =
     let buff = Buffer.create 4 in
     Buffer.add_utf_8_uchar buff my_char;
