@@ -84,7 +84,6 @@ val object_add : string -> value_t -> object_t -> object_t
 val object_of_tokens : Tokens.t list -> object_t * Tokens.t list
 
 type array_t = value_t array
-val array_add : value_t -> value_t list -> value_t list
 val array_of_tokens : Tokens.t list -> array_t * Tokens.t list
 
 type json = value_t

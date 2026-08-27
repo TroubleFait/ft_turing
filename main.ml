@@ -69,9 +69,11 @@ let () =
 		|> Rules_parser.parse_rules |> Rules_parser.validate_rules |> Rules_parser.validate_input input
 		|> Turing_machine.start_machine input |> Printf.printf "%s\n"
 	end with
-  | Sys_error message
-  | Failure message -> prerr_endline message; exit 1
 	| Invalid_args_count -> print_usage (); exit 1
 	| Rules_parser.Invalid_struct -> Rules_parser.print_invalid_struct (); exit 1
-	| Parser.Open_end msg -> Utils.print_err "%s\n" msg; exit 1
-	| Parser.Tokens.Unexpected msg -> Utils.print_err "Unexpected Token: %s\n" msg; exit 1
+  | Sys_error msg
+  | Failure msg
+  | Lexer.Strings.Malformed msg
+  | Lexer.Numbers.Malformed msg
+	| Parser.Open_end msg
+	| Parser.Tokens.Unexpected msg -> Utils.print_err "%s\n" msg; exit 1

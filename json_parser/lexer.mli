@@ -6,10 +6,12 @@ module LiteralNames :
   end
 module Strings :
   sig
+    exception Malformed of string
     val scan : string -> int -> (string * int) option
   end
 module Numbers :
   sig
+    exception Malformed of string
     type token = DecimalPoint | Digit19 of char | E | Minus | Plus | Zero
     val token_of : char -> token option
     val is : char -> bool
