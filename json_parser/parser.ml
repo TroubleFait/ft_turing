@@ -3,8 +3,7 @@ module StringMap = Map.Make(String)
 exception Open_end of string
 
 let raise_open_end message =
-  raise @@ Open_end (Printf.sprintf "Open %s at end of file" message) 
-(*  raise @@ Open_end ("Open " ^^ message ^^ " at end of file") *)
+  raise @@ Open_end @@ Printf.sprintf "Open %s at end of file" message
 
 module Tokens = struct
   include Lexer.Tokens
@@ -12,152 +11,102 @@ module Tokens = struct
   exception Unexpected of string
 
   let raise_unexpected token =
-    raise (
-      Unexpected (
-      (match token with
+    raise Unexpected @@ "Unexpected Token: " ^ (
+      match token with
       | StructuralChar _ -> "StructuralChar"
       | String _         -> "String"
       | Number _         -> "Number"
-      | LiteralName _    -> "LiteralName")
-      ^ ": " ^ to_string token)
-    )
+      | LiteralName _    -> "LiteralName"
+      ) ^ ": " ^ to_string token
 end
 
-(* module Numbers = struct *)
-  let number_of_token number =
-    try float_of_string number with Failure message ->
-      failwith (message ^ ": " ^ number)
-(* end *)
+let number_of_token number =
+  try float_of_string number with Failure message ->
+    failwith @@ message ^ ": " ^ number
 
-(* module Values = struct *)
-  type value_t =
-  | Object of value_t StringMap.t
-  | Array of value_t array (* or list? *)
-  | Number of float
-  | String of string
-  | Bool of bool
-  | Null
-  | Empty
+type value_t =
+| Object of value_t StringMap.t
+| Array of value_t array
+| Number of float
+| String of string
+| Bool of bool
+| Null
+| Empty
 
-  let value_of_literal_name = function
-  | Lexer.LiteralNames.Bool b -> Bool b
-  | Lexer.LiteralNames.Null -> Null
+let value_of_literal_name = function
+| Lexer.LiteralNames.Bool b -> Bool b
+| Lexer.LiteralNames.Null -> Null
 
-  (* (* See below, near array_of_token *)
-  let value_of_tokens (token_list : Tokens.t list) : value_t * Tokens.t list =
+
+type object_t = value_t StringMap.t
+
+let object_add key value obj =
+  StringMap.add key value obj
+
+
+type array_t = value_t array
+
+let rev_array_list_add value array =
+  value :: array
+
+
+let rec value_of_tokens (token_list : Tokens.t list) : value_t * Tokens.t list =
+  match token_list with
+  | [] -> Empty, []
+  | head :: tail ->
+  match head with
+  | Tokens.Number n         -> Number (number_of_token n), tail
+  | Tokens.String s         -> String s,                   tail
+  | Tokens.LiteralName l    -> value_of_literal_name l,    tail
+  | Tokens.StructuralChar c ->
+  match c with
+  | Lexer.StructuralChars.BeginObject -> let value, next_token = object_of_tokens tail in Object (value), next_token
+  | Lexer.StructuralChars.BeginArray  -> let value, next_token = array_of_tokens  tail in Array  (value), next_token
+  | _ -> Tokens.raise_unexpected head
+
+and object_of_tokens (token_list : Tokens.t list) : object_t * Tokens.t list =
+  let rec parse token_list obj =
     match token_list with
-    | [] -> Empty, []        (* Is an exception warranted here instead? *)
-    | head :: tail ->
-    match head with
-    | Tokens.Number n       -> Number (number_of_token n), tail
-    | Tokens.String s       -> String s,           tail
-    | Tokens.LiteralName l  -> value_of_literal_name l,  tail
-    | Tokens.StructuralChar c ->
-    let value, next_token =
-      match c with
-      (* | Lexer.StructuralChars.BeginObject -> Objects.of_tokens tail *)
-      | Lexer.StructuralChars.BeginArray  -> array_of_tokens  tail
-      | _ -> Tokens.raise_unexpected head
-    in
-    value, next_token *)
-(* end *)
-
-(* module Objects = struct
-  type bound_token =
-  | Begin of Lexer.StructuralChars.BeginObject
-  | End of Lexer.StructuralChars.EndObject *)
-
-  (* module StringMap = Map.Make(String) *)
-
-  type object_t = value_t StringMap.t
-
-  let object_add key value obj =
-    StringMap.add key value obj
-
-  (* let object_of_tokens (token_list : Tokens.t list) : value_t StringMap.t =
-    let rec add token_list map =
-      match token_list with
-      | [] -> raise_open_end "object"
-      | Tokens.String key :: tail -> begin
-        match Values.of_tokens tail with
-        | None -> failwith ("no value for " ^ key)
-        | Some (value, next_token) -> 
-      end
-      
-    in
-    add token_list StringMap.empty *)
-(* end *)
-
-(* module Arrays = struct *)
-  (* type bound_token =
-  | Begin of Lexer.StructuralChars.BeginArray
-  | End of Lexer.StructuralChars.EndArray *)
-
-  type array_t = value_t array
-  (* type t = value_t list *)
-
-  let array_add value array =
-    value :: array
-
-  let rec value_of_tokens (token_list : Tokens.t list) : value_t * Tokens.t list =
-    match token_list with
-    | [] -> Empty, []
-    | head :: tail ->
-    match head with
-    | Tokens.Number n         -> Number (number_of_token n), tail
-    | Tokens.String s         -> String s,                   tail
-    | Tokens.LiteralName l    -> value_of_literal_name l,    tail
-    | Tokens.StructuralChar c ->
-    match c with
-    | Lexer.StructuralChars.BeginObject -> let value, next_token = object_of_tokens tail in Object (value), next_token
-    | Lexer.StructuralChars.BeginArray  -> let value, next_token = array_of_tokens  tail in Array  (value), next_token
-    | _ -> Tokens.raise_unexpected head
-
-  and object_of_tokens (token_list : Tokens.t list) : object_t * Tokens.t list =
-    let rec parse token_list obj =
-      match token_list with
-      | [] -> raise_open_end "object"
-      | Tokens.StructuralChar Lexer.StructuralChars.EndObject :: tail -> obj, tail
-      | Tokens.String key :: tail -> begin
-        match tail with
-        | Tokens.StructuralChar Lexer.StructuralChars.NameSeparator :: tail -> begin
-          match value_of_tokens tail with
-          | Empty, _ -> raise_open_end "object"
-          | value, next_token ->
-          match next_token with
-          | Tokens.StructuralChar Lexer.StructuralChars.EndObject :: tail -> object_add key value obj, tail
-          | Tokens.StructuralChar Lexer.StructuralChars.ValueSeparator :: tail -> parse tail @@ object_add key value obj
-          | [] -> raise_open_end "object"
-          | head :: _ -> Tokens.raise_unexpected head
-        end
+    | [] -> raise_open_end "object"
+    | Tokens.StructuralChar Lexer.StructuralChars.EndObject :: tail -> obj, tail
+    | Tokens.String key :: tail -> begin
+      match tail with
+      | Tokens.StructuralChar Lexer.StructuralChars.NameSeparator :: tail -> begin
+        match value_of_tokens tail with
+        | Empty, _ -> raise_open_end "object"
+        | value, next_token ->
+        match next_token with
+        | Tokens.StructuralChar Lexer.StructuralChars.EndObject :: tail -> object_add key value obj, tail
+        | Tokens.StructuralChar Lexer.StructuralChars.ValueSeparator :: tail -> parse tail @@ object_add key value obj
         | [] -> raise_open_end "object"
         | head :: _ -> Tokens.raise_unexpected head
       end
+      | [] -> raise_open_end "object"
       | head :: _ -> Tokens.raise_unexpected head
-    in
-    let obj, next_token = parse token_list StringMap.empty in
-    obj, next_token
+    end
+    | head :: _ -> Tokens.raise_unexpected head
+  in
+  let obj, next_token = parse token_list StringMap.empty in
+  obj, next_token
 
-  (* and array_of_tokens (token_list : Tokens.t list) : value_t StringMap.t = *)
-  and array_of_tokens (token_list : Tokens.t list) : array_t * Tokens.t list =
-    let rec parse token_list rev_array_list =
-      match token_list with
-      | [] -> raise_open_end "array"
-      | Tokens.StructuralChar Lexer.StructuralChars.EndArray :: tail -> rev_array_list, tail
-      | _ ->
-      match value_of_tokens token_list with
-      | Empty, _ -> raise_open_end "array"
-      | value, next_token ->
-      match next_token with
-      | Tokens.StructuralChar Lexer.StructuralChars.EndArray :: tail -> array_add value rev_array_list, tail
-      | Tokens.StructuralChar Lexer.StructuralChars.ValueSeparator :: tail -> parse tail @@ array_add value rev_array_list
-      | [] -> raise_open_end "array"
-      | head :: _ -> Tokens.raise_unexpected head
-    in
-    let rev_array_list, next_token = parse token_list [] in
-    let arr = List.rev rev_array_list |> List.to_seq |> Array.of_seq in
-    arr, next_token
-(* end *)
+and array_of_tokens (token_list : Tokens.t list) : array_t * Tokens.t list =
+  let rec parse token_list rev_array_list =
+    match token_list with
+    | [] -> raise_open_end "array"
+    | Tokens.StructuralChar Lexer.StructuralChars.EndArray :: tail -> rev_array_list, tail
+    | _ ->
+    match value_of_tokens token_list with
+    | Empty, _ -> raise_open_end "array"
+    | value, next_token ->
+    match next_token with
+    | Tokens.StructuralChar Lexer.StructuralChars.EndArray :: tail -> rev_array_list_add value rev_array_list, tail
+    | Tokens.StructuralChar Lexer.StructuralChars.ValueSeparator :: tail -> parse tail @@ rev_array_list_add value rev_array_list
+    | [] -> raise_open_end "array"
+    | head :: _ -> Tokens.raise_unexpected head
+  in
+  let rev_array_list, next_token = parse token_list [] in
+  let arr = rev_array_list |> List.rev |> List.to_seq |> Array.of_seq in
+  arr, next_token
 
 type json = value_t
 
@@ -166,6 +115,5 @@ let rec parse (lst : Tokens.t list) : json =
   | [] -> Empty
   | _ -> 
   match value_of_tokens lst with
-  | _, head :: tail -> failwith "unexpected non-whitespace character after JSON data"
+  | _, head :: _ -> Tokens.raise_unexpected head
   | v, _ -> v
-  (* À revoir *)
