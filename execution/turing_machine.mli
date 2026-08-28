@@ -11,8 +11,8 @@ type machine = {
 	last_change: machine option;
 }
 
-val tape_to_str   : ?window_size:int -> machine -> string
-val print_tape    : ?window_size:int -> machine -> unit
+val tape_to_str   : ?window_size:int -> machine -> transition -> string
+val print_tape    : ?window_size:int -> machine -> transition -> unit
 val print_step    : ?window_size:int -> machine -> transition -> unit
 
 val get_transition : machine -> transition
