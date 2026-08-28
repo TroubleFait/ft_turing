@@ -66,8 +66,13 @@ let () =
 		if help then print_usage ();
     let json_str = Read_file.string_of_file json_file in
     Parser.parse @@ Lexer.lex json_str
-		|> Rules_parser.parse_rules |> Rules_parser.validate_rules |> Rules_parser.validate_input input
-		|> Turing_machine.start_machine input |> Utils.trim "." |> Printf.printf "%s\n"
+		|> Rules_parser.parse_rules
+		|> Rules_parser.validate_rules
+		|> Rules_parser.validate_input input
+		|> Rules_parser.is_HALT_reachable
+		|> Turing_machine.start_machine input
+		|> Utils.trim "."
+		|> Printf.printf "%s\n"
 	end with
   | Sys_error message
   | Failure message -> prerr_endline message; exit 1

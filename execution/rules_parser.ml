@@ -40,6 +40,8 @@ type transition = {
 	action: action;
 }
 
+type state = transition CharMap.t
+
 type rules = {
 	name: string;
 	alphabet: string;
@@ -47,7 +49,7 @@ type rules = {
 	states: string list;
 	initial: string;
 	finals: string list;
-	transitions: (transition CharMap.t) JSON.StringMap.t;
+	transitions: state JSON.StringMap.t;
 }
 
 let string_of_JSON_value ?(prefix = "") ?(empty_error = "empty") ?(invalid_type_error = "not a string") = function
@@ -195,3 +197,29 @@ let validate_input (tape: string) (rules: rules) : rules =
 (* 	| Some _ -> failwith @@ "Blank char: `" ^ (Utils.char_to_string rules.blank) ^ "' is in the input" *)
 (* 	| None -> String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape; rules *)
 String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape; rules
+
+type halt_reached = Found | Already_explored of string list
+
+let is_HALT_reachable (rules: rules) : rules =
+	let transition_is_halt (finals: string list) key = function
+		| elem when List.mem elem.to_state finals -> true
+		| _ -> false
+	in
+	let rec go = function
+		| Found -> Found
+		| Already_explored [] -> failwith "empty string list in is_HALT_reachable.go"
+		| Already_explored (current :: tail) when List.mem current tail -> Already_explored (tail)
+		| Already_explored (current :: tail) ->
+		let state = JSON.StringMap.find current rules.transitions in
+		match CharMap.exists (transition_is_halt rules.finals) state with
+		| true -> Found
+		| false -> CharMap.fold (
+			fun key transition explored ->
+				match explored with
+				| Found -> Found
+				| Already_explored lst -> go @@ Already_explored (transition.to_state :: lst)
+			) state @@ Already_explored (current :: tail)
+	in
+	match go @@ Already_explored [rules.initial] with
+	| Found -> rules
+	| _ -> failwith "No final state reachable"

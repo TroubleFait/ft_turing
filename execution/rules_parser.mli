@@ -23,6 +23,8 @@ type transition = {
 	action: action;
 }
 
+type state = transition CharMap.t
+
 type rules = {
 	name: string;
 	alphabet: string;
@@ -30,9 +32,10 @@ type rules = {
 	states: string list;
 	initial: string;
 	finals: string list;
-	transitions: (transition CharMap.t) JSON.StringMap.t;
+	transitions: state JSON.StringMap.t;
 }
 
 val parse_rules : JSON.value_t -> rules
 val validate_rules : rules -> rules
 val validate_input : string -> rules -> rules
+val is_HALT_reachable: rules -> rules
