@@ -191,5 +191,7 @@ let validate_rules (rules: rules) : rules =
   rules
 
 let validate_input (tape: string) (rules: rules) : rules =
-  String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape;
-  rules
+(* 	match String.index_opt tape rules.blank with *)
+(* 	| Some _ -> failwith @@ "Blank char: `" ^ (Utils.char_to_string rules.blank) ^ "' is in the input" *)
+(* 	| None -> String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape; rules *)
+String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape; rules

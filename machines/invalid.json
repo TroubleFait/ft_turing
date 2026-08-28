@@ -1,1 +1,21 @@
-0.0010E+000500
+{
+  "name": "as_much",
+  "alphabet": [ "0", "1", "2", "n", "."],
+  "blank" : ".",
+  "states" : [ "write1", "write2", "HALT" ],
+  "initial" : "write1",
+  "finals" : [ "HALT" ],
+
+  "transitions" : {
+    "write1": [
+      { "read" : "0", "to_state": "write2", "write": "1", "action": "RIGHT"},
+      { "read" : "1", "to_state": "write2", "write": "1", "action": "RIGHT"},
+      { "read" : ".", "to_state": "write2", "write": "1", "action": "RIGHT"}
+    ],
+    "write2": [
+      { "read" : "0", "to_state": "write1", "write": "2", "action": "RIGHT"},
+      { "read" : "1", "to_state": "write1", "write": "2", "action": "RIGHT"},
+      { "read" : ".", "to_state": "write1", "write": "2", "action": "RIGHT"}
+    ]
+  }
+}
