@@ -159,7 +159,7 @@ let validate_char ?(prefix = "") ?(fail_msg = "is not in alphabet") (alphabet: s
 let validate_state ?(prefix = "") ?(fail_msg = "unknown") (states: string list) (state: string) =
 	match List.mem state states with
 	| true  -> ()
-	| false -> failwith @@ prefix ^ fail_msg
+	| false -> failwith @@ prefix ^ fail_msg ^ ": \"" ^ state ^ "\""
 
 let validate_states (finals: string list) (transitions: string list) (states: string list) =
 	match List.equal (=) (List.sort compare states) (List.sort compare (transitions @ finals)) with
