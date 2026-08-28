@@ -33,7 +33,11 @@ let tape_to_str ?(window_size = 20) (machine: machine) : string =
 		| _ when 0 <= tape_pos && tape_pos < tape_len -> machine.tape.[tape_pos]
 		| _                                           -> machine.rules.blank
 	in
-	"[" ^ (String.init window_size symbol_i) ^ "]"
+	"["
+	^ (String.init (center - 2) symbol_i)
+	^ "\027[0;38;2;69;196;196m\027[1m<" ^ Utils.char_to_string machine.tape.[machine.index] ^ ">\027[0m"
+	^ (String.init (window_size - center - 2) (fun i -> symbol_i (i + center + 2)))
+	^ "]"
 
 let print_tape ?(window_size = 20) (machine: machine) : unit =
 	Printf.printf "%s " (tape_to_str ~window_size machine)
