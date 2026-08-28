@@ -1,0 +1,17 @@
+{
+	"name": "simplest",
+	"alphabet": [ "0", "1", "."],
+	"blank" : ".",
+	"states" : [ "write", "HALT" ],
+	"initial" : "write",
+	"finals" : [ "HALT" ],
+
+	"transitions" : {
+
+		"write": [
+			{ "read" : "0", "to_state": "write", "write": "1", "action": "RIGHT"},
+			{ "read" : "1", "to_state": "write", "write": "0", "action": "RIGHT"},
+			{ "read" : ".", "to_state": "HALT",  "write": ".", "action": "RIGHT"}
+		]
+	}
+}
