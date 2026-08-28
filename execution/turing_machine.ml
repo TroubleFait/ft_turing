@@ -63,49 +63,48 @@ let write_cell (transition: transition) (machine: machine) : machine =
 (* 	| Some old -> Printf.sprintf "tape: %s, old {index=%d; state=%s; tape='%s'}" machine.tape old.index old.state old.tape); *)
 		{
 			machine with
-	    tape = String.mapi (fun i c -> if i = machine.index then transition.write else c) machine.tape;
- 			(* tape = begin match machine.last_change with *)
- 				(* | None -> raise (Endless_loop (machine.index, "(Impossible to happen)")) *)
- 				(* | Some last_change -> last_change.tape end; *)
+ 	    tape = String.mapi (fun i c -> if i = machine.index then transition.write else c) machine.tape;
+(* 			 tape = begin match machine.last_change with *)
+(* 				 | None -> raise (Endless_loop (machine.index, "(Impossible to happen)")) *)
+(* 				 | Some last_change -> last_change.tape end; *)
 			index = machine.index + (action_to_int transition.action);
 			state = transition.to_state;
 		}
 
 let check_bounds (transition: transition) (machine: machine) : machine =
-	(* Printf.printf "Checking loop: %s\n" (match machine.last_change with
-	| None -> "None"
-	| Some old -> Printf.sprintf "Some {index=%d; state=%s; tape='%s'}" old.index old.state old.tape); *)
+(* 	Printf.printf "%s\n" (match machine.last_change with *)
+(* 	| None -> "None" *)
+(* 	| Some old -> Printf.sprintf "old {index=%d; state=%s; tape='%s'}" old.index old.state old.tape); *)
 	match machine.last_change with
-	(* | None -> raise (Endless_loop (machine.index, "(Impossible to happen)"))
-	| Some old -> *)
-	| None
-	| Some _ ->
+	| None -> raise (Endless_loop (machine.index, "(Impossible to happen)"))
+ 	| Some old ->
 	match transition.action with
 	| Left when machine.index = 0 -> begin
 		match machine.tape.[0] with
 		| c when c = machine.rules.blank && transition.to_state = machine.state -> raise (Endless_loop (0, "Infinite Left"))
 		| _ -> { machine with
 				index = 1; tape = Utils.char_to_string machine.rules.blank ^ machine.tape;
-				(* last_change = Some { old with tape= Utils.char_to_string machine.rules.blank ^ old.tape } *)
+				 last_change = Some { old with index = old.index + 1; tape = Utils.char_to_string machine.rules.blank ^ old.tape }
 			} end
 	| Right when machine.index >= (String.length machine.tape - 1) -> begin
 		match machine.tape.[(String.length machine.tape) - 1] with
 		| c when c = machine.rules.blank && transition.to_state = machine.state -> raise (Endless_loop (machine.index, "Infinite Right"))
 		| _ -> { machine with
 				tape = machine.tape ^ Utils.char_to_string machine.rules.blank;
-				(* last_change = Some { old with tape= old.tape ^ Utils.char_to_string machine.rules.blank } *)
+				 last_change = Some { old with tape = old.tape ^ Utils.char_to_string machine.rules.blank }
 			} end
 	| _ -> machine
 
 let check_loop (transition:transition) (machine: machine) : machine =
 	let new_last_change () = Some { machine with
-    tape = String.mapi (fun i c -> if i = machine.index then transition.write else c) machine.tape;
+(*    tape = String.mapi (fun i c -> if i = machine.index then transition.write else c) machine.tape; *)
     last_change = None }
   in
   match machine.last_change with
   | None -> { machine with last_change = new_last_change () }
-  | Some last_change when last_change.index = machine.index && last_change.state = transition.to_state &&
-      last_change.tape = machine.tape -> raise (Endless_loop (machine.index, "State and tape unchanged since last turn"))
+  | Some last_change when
+    last_change.index = machine.index && last_change.state = machine.state && last_change.tape = machine.tape ->
+      raise (Endless_loop (machine.index, "State and tape unchanged since last turn"))
   | _ -> if is_new_letter machine transition then {
       machine with last_change = new_last_change () } else machine
 
@@ -115,7 +114,7 @@ let execute_cell (machine : machine) : machine =
 		let transition = get_transition machine in
 		print_step ~window_size:60 machine transition;
 		machine
-		(* |> check_loop transition *)
+		|> check_loop transition
 		|> check_bounds transition
 		|> write_cell transition
 	end with
