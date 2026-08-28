@@ -1,0 +1,41 @@
+{
+  "name": "as_much",
+  "alphabet": [ "0", "1", "y", "n", "."],
+  "blank" : ".",
+  "states" : [ "go_last_1", "del_1", "go_first_0", "del_0", "yes", "no", "HALT" ],
+  "initial" : "del_0",
+  "finals" : [ "HALT" ],
+
+  "transitions" : {
+    "yes": [
+      { "read" : "0", "to_state": "yes", "write": "0", "action": "RIGHT"},
+      { "read" : "1", "to_state": "yes", "write": "1", "action": "RIGHT"},
+      { "read" : ".", "to_state": "HALT", "write": "y", "action": "RIGHT"}
+    ],
+    "no": [
+      { "read" : "0", "to_state": "no", "write": "0", "action": "RIGHT"},
+      { "read" : "1", "to_state": "no", "write": "1", "action": "RIGHT"},
+      { "read" : ".", "to_state": "HALT", "write": "n", "action": "RIGHT"}
+    ],
+    "go_last_1": [
+      { "read" : "0", "to_state": "go_last_1", "write": "0", "action": "RIGHT"},
+      { "read" : "1", "to_state": "go_last_1", "write": "1", "action": "RIGHT"},
+      { "read" : ".", "to_state": "del_1", "write": ".", "action": "LEFT"}
+    ],
+    "del_1": [
+      { "read" : "0", "to_state": "no", "write": "0", "action": "RIGHT"},
+      { "read" : "1", "to_state": "go_first_0", "write": ".", "action": "LEFT"},
+      { "read" : ".", "to_state": "no", "write": ".", "action": "LEFT"}
+    ],
+    "go_first_0": [
+      { "read" : "1", "to_state": "go_first_0", "write": "1", "action": "LEFT"},
+      { "read" : "0", "to_state": "go_first_0", "write": "0", "action": "LEFT"},
+      { "read" : ".", "to_state": "del_0", "write": ".", "action": "RIGHT"}
+    ],
+    "del_0": [
+      { "read" : "0", "to_state": "go_last_1", "write": ".", "action": "RIGHT"},
+      { "read" : "1", "to_state": "no", "write": "1", "action": "RIGHT"},
+      { "read" : ".", "to_state": "yes", "write": ".", "action": "LEFT"}
+    ]
+  }
+}

@@ -40,7 +40,7 @@ let print_tape ?(window_size = 20) (machine: machine) : unit =
 
 let print_step ?(window_size = 20) (machine: machine) (transition:transition) : unit =
 	print_tape ~window_size machine;
-	Printf.printf "i: %d (%s, %c) -> (%s, %c, %s)\n" machine.index machine.state machine.tape.[machine.index] transition.to_state
+	Printf.printf "(%s, %c) -> (%s, %c, %s)\n%!" machine.state machine.tape.[machine.index] transition.to_state
 		transition.write (action_to_str transition.action)
 
 let get_transition (machine: machine): transition =
@@ -93,7 +93,7 @@ let check_loop (transition:transition) (machine: machine) : machine =
     last_change = None }
   in
   match machine.last_change with
-  | None -> { machine with last_change = Some machine }
+  | None -> { machine with last_change = new_last_change () }
   | Some last_change when last_change.index = machine.index && last_change.state = transition.to_state &&
       last_change.tape = machine.tape -> raise (Endless_loop (machine.index, "State and tape unchanged since last turn"))
   | _ -> if machine.tape.[machine.index] <> transition.write then {
@@ -106,10 +106,6 @@ let execute_cell (machine : machine) : machine =
 		print_step ~window_size:60 machine transition;
 		check_loop transition machine |> check_bounds transition |> write_cell transition
 	end with
-(*
-		| Transition_not_found (state) -> print_err "Transition `%s' not found\n" state;
-			halt_machine
-*)
 		| Symbol_not_in_transition (symbol, state) -> Utils.print_err "Case `%c' not handled in transition `%s' in tape %s\n"
 			symbol state (tape_to_str machine);
 			halt_machine
