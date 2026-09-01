@@ -4,10 +4,8 @@ let print_err fmt =
 	Printf.printf "%!";
 	Printf.eprintf ("\027[31m" ^^ fmt ^^ "\027[0m")
 
-let char_to_string c = String.make 1 c
-
 let rec find_aux_not_of (len: int) (chars: string) (str: string) (comp) (op) = function
-	| i when comp i len -> Printf.printf "Here"; None
+	| i when comp i len -> None
 	| i ->
 	match String.contains chars str.[i] with
 	| true -> find_aux_not_of len chars str (comp) (op) (op i 1)

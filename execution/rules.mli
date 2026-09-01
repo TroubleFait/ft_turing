@@ -35,7 +35,7 @@ type rules = {
 	transitions: state JSON.StringHash.t;
 }
 
-val parse_rules : JSON.value_t -> rules
-val validate_rules : rules -> rules
+val parse : JSON.value_t -> rules
+val validate : rules -> rules
 val validate_input : string -> rules -> rules
 val is_HALT_reachable: rules -> rules

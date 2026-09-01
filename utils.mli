@@ -2,8 +2,6 @@
 
 val print_err : ('a, out_channel, unit) format -> 'a
 
-val char_to_string: char -> string
-
 val trim: string -> string -> string
 
 val find_first_not_of: string -> string -> int option

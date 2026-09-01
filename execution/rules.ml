@@ -135,7 +135,7 @@ let create_rules obj =
 		transitions = create_transitions @@ JSON.StringHash.find "transitions" obj;
 	}
 
-let parse_rules (json: JSON.value_t) : rules =
+let parse (json: JSON.value_t) : rules =
 	match json with
 	| JSON.Object obj
 		when JSON.StringHash.bindings obj |> List.split |> fst
@@ -154,7 +154,7 @@ let validate_char ?(prefix = "") ?(fail_msg = "is not in alphabet") (alphabet: s
 	try
 		String.index alphabet char |> ignore
 	with
-	| Not_found -> failwith @@ prefix ^ "`" ^ (Utils.char_to_string char) ^ "' " ^ fail_msg
+	| Not_found -> failwith @@ prefix ^ "`" ^ (String.of_char char) ^ "' " ^ fail_msg
 
 let validate_state ?(prefix = "") ?(fail_msg = "unknown") (states: string list) (state: string) =
 	match List.mem state states with
@@ -183,7 +183,7 @@ let validate_transitions (alphabet: string) (states: string list) (transitions: 
 	| [] -> failwith "transitions is empty"
 	| lst -> List.iter (validate_transition alphabet states) lst
 
-let validate_rules (rules: rules) : rules =
+let validate (rules: rules) : rules =
 	validate_alphabet    rules.alphabet;
   validate_char        ~fail_msg:"blank symbol is not in alphabet" rules.alphabet rules.blank;
   validate_states      rules.finals   (JSON.StringHash.bindings rules.transitions |> List.split |> fst) rules.states;
@@ -194,7 +194,7 @@ let validate_rules (rules: rules) : rules =
 
 let validate_input (tape: string) (rules: rules) : rules =
 (* 	match String.index_opt tape rules.blank with *)
-(* 	| Some _ -> failwith @@ "Blank char: `" ^ (Utils.char_to_string rules.blank) ^ "' is in the input" *)
+(* 	| Some _ -> failwith @@ "Blank char: `" ^ (String.of_char rules.blank) ^ "' is in the input" *)
 (* 	| None -> String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape; rules *)
 String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape; rules
 

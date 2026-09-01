@@ -1,11 +1,11 @@
-type rules = Rules_parser.rules
-type transition = Rules_parser.transition
+type rules = Rules.rules
+type transition = Rules.transition
 
-module CharHash = Rules_parser.CharHash
+module CharHash = Rules.CharHash
 
 type machine = {
 	rules: rules;
-	tape: string;
+	tape: Tape.t;
 	index: int;
 	state: string;
 	last_change: machine option;
@@ -13,4 +13,4 @@ type machine = {
 
 val get_transition : machine -> transition
 
-val start_machine : string -> rules -> string
+val start_machine : string -> rules -> Tape.t * char

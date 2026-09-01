@@ -3,7 +3,7 @@ mkmodule = $(addprefix $(1), $(addsuffix .mli, $(2)) $(addsuffix .ml, $(2)))
 PARSER_DIR = json_parser/
 PARSER = read_file lexer parser
 EXECUTION_DIR = execution/
-EXECUTION = rules_parser turing_machine
+EXECUTION = rules tape turing_machine
 
 SOURCES = $(call mkmodule, ./, utils)
 SOURCES += $(call mkmodule, $(PARSER_DIR), $(PARSER))

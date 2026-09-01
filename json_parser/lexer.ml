@@ -51,14 +51,14 @@ module Strings = struct
 
   let unescape_char s i =
     match s.[i] with
-    | '"' | '\\' | '/' -> Utils.char_to_string s.[i], (i + 1)
+    | '"' | '\\' | '/' -> String.of_char s.[i], (i + 1)
     | 'b' ->    "\b", (i + 1)
     | 'f' ->  "\x0C", (i + 1)
     | 'n' ->    "\n", (i + 1)
     | 'r' ->    "\r", (i + 1)
     | 't' ->    "\t", (i + 1)
     | 'u' -> unescape_sequence s (i + 1)
-    |  _  -> raise_malformed ("invalid escape character: `\\" ^ Utils.char_to_string s.[i] ^ "'")
+    |  _  -> raise_malformed ("invalid escape character: `\\" ^ String.of_char s.[i] ^ "'")
 
   let scan str start : (string * int) option =
     if str.[start] <> '"' then
@@ -73,7 +73,7 @@ module Strings = struct
         else 
           let c, next_pos = unescape_char str (i + 1) in
           go (c :: acc) next_pos
-      | i -> go (Utils.char_to_string str.[i] :: acc) (i + 1)
+      | i -> go (String.of_char str.[i] :: acc) (i + 1)
       in
       Some (go [] (start + 1))
     end

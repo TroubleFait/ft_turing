@@ -21,7 +21,6 @@ Then run the program with the following command:
  - [JSON notation](https://datatracker.ietf.org/doc/html/rfc7159)
  - [Ocaml Introduction](https://courses.cs.cornell.edu/cs3110/2021sp/textbook/)
  - [Ocaml Manual](https://ocaml.org/manual/5.5/index.html)
- - [Ocaml Batteries lib](https://ocaml-batteries-team.github.io/batteries-included/hdoc2/)
 
 ### IA uses
 
@@ -29,6 +28,6 @@ Then run the program with the following command:
 ## Bonuses
 ### Time Complexity
 
-best O(1) worst O(n)
+O(1) per iteration
 
 Go [here](complexity.md) to see the complexity analysis

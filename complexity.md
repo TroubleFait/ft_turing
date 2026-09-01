@@ -3,38 +3,34 @@
 t : tape length
 
 ---
-# Final complexity : best O(1) || worst O(n)
+# Final complexity : O(1)
 ``` 
-    best O(1) || worst O(t) 
-                |
-                v
-    best O(1) || worst O(n)
+    O(1)
+     |
+     v
+    O(1)
 ```
 ---
-### start_machine O(1) || worst O(t) :
+### start_machine O(1) :
 ```
-    go best O(1) || worst O(t) :
-        O(1)                                   Hashtable lookup
-        execute_cell best O(1) || worst O(t)
+    go O(1) :
+        O(1)              Hashtable lookup
+        execute_cell O(1)
 ```
-### execute_cell best O(1) || worst O(t) :
+### execute_cell O(1) :
 ``` 
-    get_transition O(1)
+    get_transition O(1)   Hashtable lookup
     print_step O(1)
     check_loop O(1)
-    |> check_bounds best O(1) || worst O(t)
-    |> write_cell best O(1) || worst O(t)
+    |> check_bounds O(1)
+    |> write_cell O(1)
 ```
 ### get_transition O(1) : 
 ``` 
-    O(1)        Hashtable lookup
-    |> O(1)     Hashtable lookup
+    O(1)                  Hashtable lookup
+    |> O(1)               Hashtable lookup
 ```
 ### print_step O(1) :
-``` 
-    print_tape O(1)
-```
-### print_tape O(1) :
 ``` 
     tape_to_window_str O(1)
 ```
@@ -46,11 +42,11 @@ t : tape length
 ``` 
     O(1)
 ```
-### check_bounds best O(1) || worst O(t) : 
+### check_bounds O(1) : 
 ``` 
-    best O(1) || worst O(t)
+    O(1)
 ```
-### write_cell best O(1) || worst O(t) : 
+### write_cell O(1) : 
 ``` 
-    best O(1) || worst O(t)
+    O(1)
 ```
