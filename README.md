@@ -27,4 +27,8 @@ Then run the program with the following command:
 
 ---
 ## Bonuses
----
+### Time Complexity
+
+best O(1) worst O(n)
+
+Go [here](complexity.md) to see the complexity analysis

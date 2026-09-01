@@ -1,4 +1,4 @@
-module StringMap = Map.Make(String)
+module StringHash = Map.Make(String)
 
 exception Open_end of string
 
@@ -25,7 +25,7 @@ let number_of_token number =
     failwith @@ message ^ ": " ^ number
 
 type value_t =
-| Object of value_t StringMap.t
+| Object of value_t StringHash.t
 | Array of value_t array
 | Number of float
 | String of string
@@ -38,10 +38,10 @@ let value_of_literal_name = function
 | Lexer.LiteralNames.Null -> Null
 
 
-type object_t = value_t StringMap.t
+type object_t = value_t StringHash.t
 
 let object_add key value obj =
-  StringMap.add key value obj
+  StringHash.add key value obj
 
 
 type array_t = value_t array
@@ -86,7 +86,7 @@ and object_of_tokens (token_list : Tokens.t list) : object_t * Tokens.t list =
     end
     | head :: _ -> Tokens.raise_unexpected head
   in
-  let obj, next_token = parse token_list StringMap.empty in
+  let obj, next_token = parse token_list StringHash.empty in
   obj, next_token
 
 and array_of_tokens (token_list : Tokens.t list) : array_t * Tokens.t list =
