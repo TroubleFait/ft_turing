@@ -1,0 +1,142 @@
+a
+a.a.R
+a1a1R
+a-a-R
+a=b.L
+b1c=L
+b-H.L
+c1c1L
+c-d-L
+d.d.L
+d1a.R
+
+states: 4
+alphabet: 4
+
+4 * 4 * 4 * 4 * 2
+
+X111-11=
+
+XTAPE		state	read	to_state	write	action	
+XC11-11=	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+|a.a.R
+|a1a1R
+|a-a-R
+|a=b.L
+|b1c=L
+|b-H.L
+|c1c1L
+|c-d-L
+|d.d.L
+|d1a.R
+X111-11=
+
+										tr: a**
+			move_to_tape	111-11=
+			place cursor	C11-11=		curs: 1
+tr curs 	look for a1:				tr: a1R
+			move to cursor
+tr (1R)		write and move
+			place cursor				curs: 1
+
+...
+
+===================================================================
+
+simplest
+
+F|a.H.R|a0a1R|a1a0RX0110
+
+F
+|a.H.R
+|a0a1R
+|a1a0R
+X0110
+
+								memory: state symbol action
+								a**
+		move_to_tape	0110
+
+		place cursor	C110	a0*
+XX* 	look for a0:			a1R
+		move to cursor
+*XX		write and move	1110
+
+		place cursor	1C10	a1R
+XX*		look for a1:			a0R
+		move to cursor
+*XX		write and move	1010
+
+		place cursor	10C0	a1R
+XX* 	look for a1:			a0R
+		move to cursor
+*XX		write and move	1000
+
+		place cursor	100C	a0R
+XX* 	look for a0:			a1R
+		move to cursor
+*XX		write and move	1001
+
+		place cursor	1001C	a.R
+XX* 	look for a.:			H.R
+		move to cursor
+*XX		write and move	1000.
+
+		HALT
+
+=======================================================
+
+shift_right
+
+F|axbxR|a.HER|a0HER|a1HER|aEHER|bxHER|b.H.R|b0c.R|b1d.R|bEHER|cxHER|c.H0R|c0c0R|c1d0R|cEHER|dxHER|d.H1R|d0c1R|d1d1R|dEHERX
+
+
+F
+|axbxR
+|a.HER
+|a0HER
+|a1HER
+|aEHER
+
+|bxHER
+|b.H.R
+|b0c.R
+|b1d.R
+|bEHER
+
+|cxHER
+|c.H0R
+|c0c0R
+|c1d0R
+|cEHER
+
+|dxHER
+|d.H1R
+|d0c1R
+|d1d1R
+|dEHER
