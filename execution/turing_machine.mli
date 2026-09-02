@@ -1,20 +1,16 @@
-type rules = Rules_parser.rules
-type transition = Rules_parser.transition
+type rules = Rules.rules
+type transition = Rules.transition
 
-module CharMap = Rules_parser.CharMap
+module CharHash = Rules.CharHash
 
 type machine = {
 	rules: rules;
-	tape: string;
+	tape: Tape.t;
 	index: int;
 	state: string;
 	last_change: machine option;
 }
 
-val tape_to_str   : ?window_size:int -> machine -> transition -> string
-val print_tape    : ?window_size:int -> machine -> transition -> unit
-val print_step    : ?window_size:int -> machine -> transition -> unit
-
 val get_transition : machine -> transition
 
-val start_machine : string -> rules -> string
+val start_machine : string -> rules -> Tape.t * char

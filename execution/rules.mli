@@ -1,9 +1,9 @@
 module JSON : sig
   type value_t = Parser.value_t
-  module StringMap = Parser.StringMap
+  module StringHash = Parser.StringHash
 end
 
-module CharMap : sig
+module CharHash : sig
 	include Map.S with type key = char
 end
 
@@ -23,7 +23,7 @@ type transition = {
 	action: action;
 }
 
-type state = transition CharMap.t
+type state = transition CharHash.t
 
 type rules = {
 	name: string;
@@ -32,10 +32,10 @@ type rules = {
 	states: string list;
 	initial: string;
 	finals: string list;
-	transitions: state JSON.StringMap.t;
+	transitions: state JSON.StringHash.t;
 }
 
-val parse_rules : JSON.value_t -> rules
-val validate_rules : rules -> rules
+val parse : JSON.value_t -> rules
+val validate : rules -> rules
 val validate_input : string -> rules -> rules
 val is_HALT_reachable: rules -> rules

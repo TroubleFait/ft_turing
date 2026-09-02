@@ -1,4 +1,4 @@
-module StringMap :
+module StringHash :
   sig
     type key = String.t
     type 'a t = 'a Map.Make(String).t
@@ -69,7 +69,7 @@ module Tokens :
 val number_of_token : string -> float
 
 type value_t =
-  | Object of value_t StringMap.t
+  | Object of value_t StringHash.t
   | Array of value_t array
   | Number of float
   | String of string
@@ -79,7 +79,7 @@ type value_t =
 val value_of_literal_name : Lexer.LiteralNames.t -> value_t
 val value_of_tokens : Tokens.t list -> value_t * Tokens.t list
 
-type object_t = value_t StringMap.t
+type object_t = value_t StringHash.t
 val object_add : string -> value_t -> object_t -> object_t
 val object_of_tokens : Tokens.t list -> object_t * Tokens.t list
 
