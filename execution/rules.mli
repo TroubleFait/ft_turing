@@ -1,6 +1,5 @@
 module JSON : sig
   type value_t = Parser.value_t
-  module StringHash = Parser.StringHash
 end
 
 module CharHash   = Utils.CharHash
@@ -31,7 +30,7 @@ type rules = {
 	states: string list;
 	initial: string;
 	finals: string list;
-	transitions: state JSON.StringHash.t;
+	transitions: state StringHash.t;
 }
 
 val parse : JSON.value_t -> rules

@@ -1,0 +1,17 @@
+{
+	"name" : "shift_right",
+	"alphabet" : [ "X", ".", "0", "1" ],
+	"blank" : ".",
+	"states" : [ "write_.", "write_0", "write_1", "HALT" ],
+	"initial" : null,
+	"finals" : null,
+
+	"transitions" : {
+
+		"write_*_TO_RESUME" : [
+			{ "read" : ".", "to_state" : "RESUME",    "write" : "*", "action" : "RIGHT" },
+			{ "read" : "0", "to_state" : "write_0", "write" : "*", "action" : "RIGHT" },
+			{ "read" : "1", "to_state" : "write_1", "write" : "*", "action" : "RIGHT" }
+		]
+	}
+}
