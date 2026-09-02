@@ -2,7 +2,7 @@ module JSON = struct
   include Parser
 end
 
-module CharHash = Rules.CharHash
+module CharHash = Utils.CharHash
 
 exception Symbol_not_in_transition of char * string
 exception Endless_loop of int * string
@@ -79,7 +79,7 @@ let print_step ?(window_size = 20) (machine: machine) (transition:transition) : 
 
 let get_transition (machine: machine): transition =
 	try begin
-		JSON.StringHash.find machine.state machine.rules.transitions
+		Utils.StringHash.find machine.state machine.rules.transitions
 		|> CharHash.find @@ Tape.read machine.tape
 	end with Not_found -> raise @@ Symbol_not_in_transition (Tape.read machine.tape, machine.state)
 
@@ -164,7 +164,7 @@ let execute_cell (machine : machine) : machine =
 
 let start_machine (input : string) (rules:rules) : Tape.t * char =
 	let rec go (machine : machine) : Tape.t * char =
-		match JSON.StringHash.find_opt machine.state machine.rules.transitions with
+		match Utils.StringHash.find_opt machine.state machine.rules.transitions with
 		| Some _ -> execute_cell machine |> go
 		| None -> machine.tape, machine.rules.blank (*is a final state*)
 	in go {

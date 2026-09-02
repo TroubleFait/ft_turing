@@ -3,9 +3,8 @@ module JSON : sig
   module StringHash = Parser.StringHash
 end
 
-module CharHash : sig
-	include Map.S with type key = char
-end
+module CharHash   = Utils.CharHash
+module StringHash = Utils.StringHash
 
 exception Invalid_struct
 

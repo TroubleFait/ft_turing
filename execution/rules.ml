@@ -2,7 +2,8 @@ module JSON = struct
 	include Parser
 end
 
-module CharHash = Map.Make(Char)
+module CharHash   = Utils.CharHash
+module StringHash = Utils.StringHash
 
 let print_invalid_struct () = Printf.printf "Invalid object structure; Expected {
 	name: string;
@@ -49,7 +50,7 @@ type rules = {
 	states: string list;
 	initial: string;
 	finals: string list;
-	transitions: state JSON.StringHash.t;
+	transitions: state StringHash.t;
 }
 
 let string_of_JSON_value ?(prefix = "") ?(empty_error = "empty") ?(invalid_type_error = "not a string") = function
@@ -102,15 +103,15 @@ let create_finals = function
 let create_transitions v =
 	let transition_of_JSON_object acc = function
 		| JSON.Object obj
-			when JSON.StringHash.bindings obj |> List.split |> fst
+			when StringHash.bindings obj |> List.split |> fst
 			|> check_binding_keys ["read"; "to_state"; "write"; "action"]
-			-> let read_key = char_of_JSON_value ~prefix:"Read: " @@ JSON.StringHash.find "read" obj in
+			-> let read_key = char_of_JSON_value ~prefix:"Read: " @@ StringHash.find "read" obj in
 				CharHash.add read_key {
 					read     = read_key;
 					to_state = string_of_JSON_value ~prefix:"to_state: "
-																					                @@ JSON.StringHash.find "to_state" obj;
-					write    = char_of_JSON_value ~prefix:"Write: " @@ JSON.StringHash.find "write"    obj;
-					action   = action_of_JSON_value                 @@ JSON.StringHash.find "action"   obj;
+																					                @@ StringHash.find "to_state" obj;
+					write    = char_of_JSON_value ~prefix:"Write: " @@ StringHash.find "write"    obj;
+					action   = action_of_JSON_value                 @@ StringHash.find "action"   obj;
 				} acc
 		| JSON.Object _ -> failwith "invalid transition structure"
 		| _ -> raise Invalid_struct
@@ -120,25 +121,25 @@ let create_transitions v =
 		| _ -> failwith ""
 	in
 	match v with
-	| JSON.Object obj -> JSON.StringHash.map charhash_of_array obj
+	| JSON.Object obj -> StringHash.map charhash_of_array obj
 	| _ -> failwith "invalid transitions type"
 
 
 let create_rules obj =
 	{
-		name        = create_name        @@ JSON.StringHash.find "name"        obj;
-		alphabet    = create_alphabet    @@ JSON.StringHash.find "alphabet"    obj;
-		blank       = create_blank       @@ JSON.StringHash.find "blank"       obj;
-		states      = create_states      @@ JSON.StringHash.find "states"      obj;
-		initial     = create_initial     @@ JSON.StringHash.find "initial"     obj;
-		finals      = create_finals      @@ JSON.StringHash.find "finals"      obj;
-		transitions = create_transitions @@ JSON.StringHash.find "transitions" obj;
+		name        = create_name        @@ StringHash.find "name"        obj;
+		alphabet    = create_alphabet    @@ StringHash.find "alphabet"    obj;
+		blank       = create_blank       @@ StringHash.find "blank"       obj;
+		states      = create_states      @@ StringHash.find "states"      obj;
+		initial     = create_initial     @@ StringHash.find "initial"     obj;
+		finals      = create_finals      @@ StringHash.find "finals"      obj;
+		transitions = create_transitions @@ StringHash.find "transitions" obj;
 	}
 
 let parse (json: JSON.value_t) : rules =
 	match json with
 	| JSON.Object obj
-		when JSON.StringHash.bindings obj |> List.split |> fst
+		when StringHash.bindings obj |> List.split |> fst
 		|> check_binding_keys ["name"; "alphabet"; "blank"; "states"; "initial"; "finals"; "transitions"]
 		-> create_rules obj
 	| JSON.Object _ -> raise Invalid_struct
@@ -178,15 +179,15 @@ let validate_transition (alphabet: string) (states: string list) (transition: tr
 			validate_char   ~prefix:"write: " alphabet v.write;
 		) lst
 
-let validate_transitions (alphabet: string) (states: string list) (transitions: (transition CharHash.t) JSON.StringHash.t) =
-	match JSON.StringHash.bindings transitions |> List.split |> snd with
+let validate_transitions (alphabet: string) (states: string list) (transitions: (transition CharHash.t) StringHash.t) =
+	match StringHash.bindings transitions |> List.split |> snd with
 	| [] -> failwith "transitions is empty"
 	| lst -> List.iter (validate_transition alphabet states) lst
 
 let validate (rules: rules) : rules =
 	validate_alphabet    rules.alphabet;
   validate_char        ~fail_msg:"blank symbol is not in alphabet" rules.alphabet rules.blank;
-  validate_states      rules.finals   (JSON.StringHash.bindings rules.transitions |> List.split |> fst) rules.states;
+  validate_states      rules.finals   (StringHash.bindings rules.transitions |> List.split |> fst) rules.states;
   validate_state       ~prefix:"Initial: " rules.states   rules.initial;
   validate_finals      rules.states   rules.finals;
   validate_transitions rules.alphabet rules.states rules.transitions;
@@ -210,7 +211,7 @@ let is_HALT_reachable (rules: rules) : rules =
 		| Already_explored [] -> failwith "empty string list in is_HALT_reachable.go"
 		| Already_explored (current :: tail) when List.mem current tail -> Already_explored (tail)
 		| Already_explored (current :: tail) ->
-		let state = JSON.StringHash.find current rules.transitions in
+		let state = StringHash.find current rules.transitions in
 		match CharHash.exists (transition_is_halt rules.finals) state with
 		| true -> Found
 		| false -> CharHash.fold (

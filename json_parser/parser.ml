@@ -1,4 +1,4 @@
-module StringHash = Map.Make(String)
+module StringHash = Utils.StringHash
 
 exception Open_end of string
 

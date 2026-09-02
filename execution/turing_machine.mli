@@ -1,7 +1,7 @@
 type rules = Rules.rules
 type transition = Rules.transition
 
-module CharHash = Rules.CharHash
+module CharHash = Utils.CharHash
 
 type machine = {
 	rules: rules;

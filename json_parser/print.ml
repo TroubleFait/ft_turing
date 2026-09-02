@@ -5,8 +5,8 @@ let indent_to_string indent = String.make indent '\t'
 let line_of_string indent str = indent_to_string indent ^ str ^ "\n"
 
 let rec object_to_string indent obj =
-  let len = Parser.StringHash.cardinal obj in
-  let arr = Parser.StringHash.to_seq obj |> Array.of_seq in
+  let len = Utils.StringHash.length obj in
+  let arr = Utils.StringHash.to_seq obj |> Array.of_seq in
   let rec loop i =
     if i >= len then (line_of_string indent "}") else
     let value_str = to_string (indent + 2) @@ snd arr.(i) in
