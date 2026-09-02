@@ -9,12 +9,14 @@
   "transitions" : {
     "ri": [
       { "read" : "B", "to_state": "le", "write": "B", "action": "LEFT"},
-      { "read" : "A", "to_state": "ri", "write": "A", "action": "RIGHT"},
+      { "read" : "a", "to_state": "le", "write": "A", "action": "RIGHT"},
+      { "read" : "A", "to_state": "ri", "write": "a", "action": "RIGHT"},
       { "read" : "0", "to_state": "ri", "write": "0", "action": "RIGHT"}
     ],
     "le": [
       { "read" : ".", "to_state": "ri", "write": ".", "action": "RIGHT"},
       { "read" : "A", "to_state": "le", "write": "A", "action": "LEFT"},
+      { "read" : "a", "to_state": "le", "write": "a", "action": "LEFT"},
       { "read" : "B", "to_state": "le", "write": "B", "action": "LEFT"},
       { "read" : "0", "to_state": "le", "write": "0", "action": "LEFT"},
       { "read" : "1", "to_state": "HALT", "write": "1", "action": "LEFT"}
