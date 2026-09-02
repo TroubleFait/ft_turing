@@ -1,7 +1,7 @@
 (* type 'a fmt = (('a, out_channel, unit, unit, unit, unit) format6) *)
 
-module StringHash = Hashtbl.Make(String)
-module CharHash   = Hashtbl.Make(Char)
+module StringHash : Hashtbl.S with type key = string
+module CharHash   : Hashtbl.S with type key = char
 
 val print_err : ('a, out_channel, unit) format -> 'a
 

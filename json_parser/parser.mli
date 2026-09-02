@@ -31,7 +31,6 @@ val value_of_literal_name : Lexer.LiteralNames.t -> value_t
 val value_of_tokens : Tokens.t list -> value_t * Tokens.t list
 
 type object_t = value_t StringHash.t
-val object_add : string -> value_t -> object_t -> object_t
 val object_of_tokens : Tokens.t list -> object_t * Tokens.t list
 
 type array_t = value_t array

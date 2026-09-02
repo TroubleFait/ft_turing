@@ -79,8 +79,9 @@ let print_step ?(window_size = 20) (machine: machine) (transition:transition) : 
 
 let get_transition (machine: machine): transition =
 	try begin
-		Utils.StringHash.find machine.state machine.rules.transitions
-		|> CharHash.find @@ Tape.read machine.tape
+		CharHash.find
+			(Utils.StringHash.find machine.rules.transitions machine.state)
+			(Tape.read machine.tape)
 	end with Not_found -> raise @@ Symbol_not_in_transition (Tape.read machine.tape, machine.state)
 
 let write_cell (transition: transition) (machine: machine) : machine =
@@ -164,7 +165,7 @@ let execute_cell (machine : machine) : machine =
 
 let start_machine (input : string) (rules:rules) : Tape.t * char =
 	let rec go (machine : machine) : Tape.t * char =
-		match Utils.StringHash.find_opt machine.state machine.rules.transitions with
+		match Utils.StringHash.find_opt machine.rules.transitions machine.state with
 		| Some _ -> execute_cell machine |> go
 		| None -> machine.tape, machine.rules.blank (*is a final state*)
 	in go {

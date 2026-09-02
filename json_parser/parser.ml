@@ -40,8 +40,10 @@ let value_of_literal_name = function
 
 type object_t = value_t StringHash.t
 
+module StringMap = Map.Make(String)
+
 let object_add key value obj =
-  StringHash.add key value obj
+  StringMap.add key value obj
 
 
 type array_t = value_t array
@@ -65,10 +67,10 @@ let rec value_of_tokens (token_list : Tokens.t list) : value_t * Tokens.t list =
   | _ -> Tokens.raise_unexpected head
 
 and object_of_tokens (token_list : Tokens.t list) : object_t * Tokens.t list =
-  let rec parse token_list obj =
+  let rec parse token_list obj_map =
     match token_list with
     | [] -> raise_open_end "object"
-    | Tokens.StructuralChar Lexer.StructuralChars.EndObject :: tail -> obj, tail
+    | Tokens.StructuralChar Lexer.StructuralChars.EndObject :: tail -> obj_map, tail
     | Tokens.String key :: tail -> begin
       match tail with
       | Tokens.StructuralChar Lexer.StructuralChars.NameSeparator :: tail -> begin
@@ -76,8 +78,8 @@ and object_of_tokens (token_list : Tokens.t list) : object_t * Tokens.t list =
         | Empty, _ -> raise_open_end "object"
         | value, next_token ->
         match next_token with
-        | Tokens.StructuralChar Lexer.StructuralChars.EndObject :: tail -> object_add key value obj, tail
-        | Tokens.StructuralChar Lexer.StructuralChars.ValueSeparator :: tail -> parse tail @@ object_add key value obj
+        | Tokens.StructuralChar Lexer.StructuralChars.EndObject :: tail -> object_add key value obj_map, tail
+        | Tokens.StructuralChar Lexer.StructuralChars.ValueSeparator :: tail -> parse tail @@ object_add key value obj_map
         | [] -> raise_open_end "object"
         | head :: _ -> Tokens.raise_unexpected head
       end
@@ -86,7 +88,8 @@ and object_of_tokens (token_list : Tokens.t list) : object_t * Tokens.t list =
     end
     | head :: _ -> Tokens.raise_unexpected head
   in
-  let obj, next_token = parse token_list StringHash.empty in
+  let obj_map, next_token = parse token_list StringMap.empty in
+  let obj = obj_map |> StringMap.to_seq |> StringHash.of_seq in
   obj, next_token
 
 and array_of_tokens (token_list : Tokens.t list) : array_t * Tokens.t list =
