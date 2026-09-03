@@ -1,10 +1,9 @@
+module CharHash   = Utils.CharHash
 module StringHash = Utils.StringHash
 
 let validate_puctuation (alphabet: string) : unit =
-  let punctuation = "F|XCH" in
-  match Utils.find_first_not_of punctuation alphabet with
-  | Some 0 -> ()
-  | _ -> failwith "alphabet contains punctuation"
+  if Utils.find_first_not_of "F|HBEC" alphabet <> Some 0 then
+    failwith "alphabet contains punctuation"
 
 let validate_size (transitions: Rules.state StringHash.t) : unit =
   if StringHash.length transitions > 26 then
@@ -12,7 +11,7 @@ let validate_size (transitions: Rules.state StringHash.t) : unit =
 
 module StringMap = Map.Make(String)
 
-let states_assoc (rules: Rules.rules) : string StringHash.t =
+let states_assoc (rules: Rules.rules) : char StringHash.t =
   validate_puctuation rules.alphabet;
   validate_size rules.transitions;
   let encode_statei map i state =
@@ -33,23 +32,30 @@ let states_assoc (rules: Rules.rules) : string StringHash.t =
   |> StringMap.to_seq
   |> StringHash.of_seq
 
-let encode_transitions (assoc: string StringHash.t) (rules: Rules.rules) : string =
-  let encode_action = function
-  | Rules.Left  -> "L"
-  | Rules.Right -> "R"
-  in
-  let encode_transition acc (transition_state, transition) =
+let encode_transitions (assoc: char StringHash.t) (rules: Rules.rules) : string =
+  let encode_transition acc (transition: Rules.transition) =
     acc
-    ^ "|"
-    ^ StringHash.find assoc transition_state
     ^ String.of_char transition.read
-    ^ StringHash.find assoc transition.to_state
+    ^ ( StringHash.find assoc transition.to_state |> String.of_char)
     ^ String.of_char transition.write
-    ^ encode_action transition.action
+    ^ match transition.action with
+    | Rules.Left  -> "L"
+    | Rules.Right -> "R"
+  in
+  let encode_state acc (state, transitions: string * Rules.state) =
+    let prefix = "|" ^ ( StringHash.find assoc state |> String.of_char ) in
+    transitions
+    |> CharHash.to_seq_values
+    |> Seq.fold_left (fun acc transition -> prefix ^ encode_transition acc transition) ""
+    |> String.cat acc
   in
   rules.transitions
   |> StringHash.to_seq
-  |> Seq.fold_left encode_transition ""
+  |> Seq.fold_left encode_state ""
 
-let encode_machine (assoc: string StringHash.t) (rules: Rules.rules) (tape: string) : string =
-  StringHash.find assoc rules.initial ^ "F" ^ encode_transitions assoc rules ^ "X" ^ tape
+let encode_machine (rules: Rules.rules) (tape: string) : string =
+  let assoc = states_assoc rules in
+  ( StringHash.find assoc rules.initial |> String.of_char )
+  ^ "F"
+  ^ encode_transitions assoc rules
+  ^ "B" ^ tape ^ "E"

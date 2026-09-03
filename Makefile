@@ -4,10 +4,13 @@ PARSER_DIR = json_parser/
 PARSER = read_file lexer parser
 EXECUTION_DIR = execution/
 EXECUTION = rules tape turing_machine
+INCEPTION_DIR = inception/
+INCEPTION = write_file encoder machine_generator
 
 SOURCES = $(call mkmodule, ./, utils)
 SOURCES += $(call mkmodule, $(PARSER_DIR), $(PARSER))
 SOURCES += $(call mkmodule, $(EXECUTION_DIR), $(EXECUTION))
+SOURCES += $(call mkmodule, $(INCEPTION_DIR), $(INCEPTION))
 SOURCES += main.ml
 
 RESULT = ft_turing
