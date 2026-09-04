@@ -33,8 +33,10 @@ let states_assoc (rules: Rules.rules) : char StringHash.t =
   |> StringHash.of_seq
 
 let encode_transitions (assoc: char StringHash.t) (rules: Rules.rules) : string =
-  let encode_transition acc (transition: Rules.transition) =
+  let encode_transition state acc (transition: Rules.transition) =
+    let prefix = "|" ^ ( StringHash.find assoc state |> String.of_char ) in
     acc
+    ^ prefix
     ^ String.of_char transition.read
     ^ ( StringHash.find assoc transition.to_state |> String.of_char)
     ^ String.of_char transition.write
@@ -43,10 +45,9 @@ let encode_transitions (assoc: char StringHash.t) (rules: Rules.rules) : string 
     | Rules.Right -> "R"
   in
   let encode_state acc (state, transitions: string * Rules.state) =
-    let prefix = "|" ^ ( StringHash.find assoc state |> String.of_char ) in
-    transitions
+   transitions
     |> CharHash.to_seq_values
-    |> Seq.fold_left (fun acc transition -> prefix ^ encode_transition acc transition) ""
+    |> Seq.fold_left (fun acc transition -> encode_transition state acc transition) ""
     |> String.cat acc
   in
   rules.transitions
@@ -55,7 +56,12 @@ let encode_transitions (assoc: char StringHash.t) (rules: Rules.rules) : string 
 
 let encode_machine (rules: Rules.rules) (tape: string) : string =
   let assoc = states_assoc rules in
-  ( StringHash.find assoc rules.initial |> String.of_char )
-  ^ "F"
-  ^ encode_transitions assoc rules
-  ^ "B" ^ tape ^ "E"
+  let encoded_tape =
+    ( StringHash.find assoc rules.initial |> String.of_char )
+    ^ "F"
+    ^ encode_transitions assoc rules
+    ^ "B" ^ tape ^ "E"
+  in
+  Printf.printf "%s encoded as a tape:\n" rules.name;
+  Printf.printf "%s\n\n" encoded_tape;
+  encoded_tape

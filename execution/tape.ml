@@ -66,7 +66,7 @@ let to_string (tape: t) : string =
     |> String.of_seq
   )
 
-let print (tape, blank: t * char) =
+let print (tape: t) =
   let rewind = rewind tape in
   let print_char = Printf.printf "%c" in
   match rewind.left with

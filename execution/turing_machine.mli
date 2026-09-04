@@ -3,6 +3,11 @@ type transition = Rules.transition
 
 module CharHash = Utils.CharHash
 
+type flags = {
+	skip:   bool;
+	window: int;
+}
+
 type machine = {
 	rules: rules;
 	tape: Tape.t;
@@ -13,4 +18,4 @@ type machine = {
 
 val get_transition : machine -> transition
 
-val start_machine : string -> rules -> Tape.t * char
+val start_machine : flags:flags -> rules -> string -> Tape.t

@@ -7,15 +7,20 @@ module CharHash = Utils.CharHash
 exception Symbol_not_in_transition of char * string
 exception Endless_loop of int * string
 
-type rules = Rules.rules
+type flags = {
+	skip:   bool;
+	window: int;
+}
+
+type rules      = Rules.rules
 type transition = Rules.transition
-type action = Rules.action
+type action     = Rules.action
 let action_to_int = Rules.action_to_int
 let action_to_str = Rules.action_to_str
 
 type machine = {
 	rules: rules;
-	tape: Tape.t;
+	tape:  Tape.t;
 	index: int;
 	state: string;
 	last_change: machine option;
@@ -73,7 +78,7 @@ let tape_to_window_str ?(window_size = 20) (machine: machine) (transition: trans
 let print_step ?(window_size = 20) (machine: machine) (transition:transition) : unit =
 	Printf.printf "%s " (tape_to_window_str ~window_size machine transition);
 	Printf.printf "(%s, %c) -> (%s, %s, %s)\n%!" machine.state (Tape.read machine.tape)
-		( if machine.state <> transition.to_state then new_state_color transition.to_state else transition.to_state )
+		( if is_new_state  machine transition then new_state_color transition.to_state else transition.to_state )
 		( if is_new_letter machine transition then new_letter_colour (String.of_char transition.write) else (String.of_char transition.write) )
 		(action_to_str transition.action)
 
@@ -145,11 +150,12 @@ let check_loop (transition:transition) (machine: machine) : machine =
   | _ -> if is_new_letter machine transition then {
       machine with last_change = new_last_change () } else machine
 
-let execute_cell (machine : machine) : machine =
+let execute_cell ~(flags: flags) (machine : machine) : machine =
 	let halt_machine = { machine with state = List.hd machine.rules.finals } in
 	try begin
 		let transition = get_transition machine in
-		print_step ~window_size:60 machine transition;
+		if not (flags.skip && machine.last_change <> None) || is_new_state machine transition || is_new_letter machine transition then
+			print_step ~window_size:flags.window machine transition;
 		machine
 		|> check_loop transition
 		|> check_bounds transition
@@ -163,11 +169,11 @@ let execute_cell (machine : machine) : machine =
 		| Tape.Misplaced_cursor msg -> Utils.print_err "%s\n" msg;
 			halt_machine
 
-let start_machine (input : string) (rules:rules) : Tape.t * char =
-	let rec go (machine : machine) : Tape.t * char =
+let start_machine ~(flags: flags) (rules: rules) (input: string) : Tape.t =
+	let rec go (machine : machine) : Tape.t =
 		match Utils.StringHash.find_opt machine.rules.transitions machine.state with
-		| Some _ -> execute_cell machine |> go
-		| None -> machine.tape, machine.rules.blank (*is a final state*)
+		| Some _ -> execute_cell ~flags machine |> go
+		| None -> machine.tape (*is a final state*)
 	in go {
 		rules = rules;
 		tape = if input = "" then Tape.of_string @@ String.of_char rules.blank else Tape.of_string input;
