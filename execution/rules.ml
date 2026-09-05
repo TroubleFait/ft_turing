@@ -41,6 +41,9 @@ type transition = {
 	action: action;
 }
 
+let transition_of (read, to_state, write, action) =
+	{ read; to_state; write; action }
+
 type state = transition CharHash.t
 
 type rules = {

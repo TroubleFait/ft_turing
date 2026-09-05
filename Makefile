@@ -5,7 +5,7 @@ PARSER = read_file lexer parser
 EXECUTION_DIR = execution/
 EXECUTION = rules tape turing_machine
 INCEPTION_DIR = inception/
-INCEPTION = write_file encoder machine_generator
+INCEPTION = write_file encoder states machine_generator
 
 SOURCES = $(call mkmodule, ./, utils)
 SOURCES += $(call mkmodule, $(PARSER_DIR), $(PARSER))

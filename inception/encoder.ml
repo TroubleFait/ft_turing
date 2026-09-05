@@ -1,6 +1,10 @@
 module CharHash   = Utils.CharHash
 module StringHash = Utils.StringHash
 
+let char_of_action = function
+| Rules.Left  -> 'L'
+| Rules.Right -> 'R'
+
 let validate_puctuation (alphabet: string) : unit =
   if Utils.find_first_not_of "F|HBEC" alphabet <> Some 0 then
     failwith "alphabet contains punctuation"

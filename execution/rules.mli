@@ -21,6 +21,8 @@ type transition = {
 	action: action;
 }
 
+val transition_of : char * string * char * action -> transition
+
 type state = transition CharHash.t
 
 type rules = {
@@ -33,7 +35,7 @@ type rules = {
 	transitions: state StringHash.t;
 }
 
-val parse : JSON.value_t -> rules
-val validate : rules -> rules
-val validate_input : string -> rules -> rules
-val is_HALT_reachable: rules -> rules
+val parse             : JSON.value_t -> rules
+val validate          : rules -> rules
+val validate_input    : string -> rules -> rules
+val is_HALT_reachable : rules -> rules
