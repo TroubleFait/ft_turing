@@ -22,7 +22,9 @@ let () =
 		let help, json_file, input = fetch_argv () in
 		if help then print_usage ();
     let json_str = Read_file.string_of_file json_file in
-    Parser.parse @@ Lexer.lex json_str
+    json_str
+    |> Lexer.lex
+    |> Parser.parse
 		|> Rules.parse
 		|> Rules.validate
 		|> Rules.validate_input input

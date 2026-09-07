@@ -3,12 +3,13 @@
 
 ---
 ## Description
-    The goal of this project is to write a program able to simulate a single headed, single tape Turing machine from a 
+The goal of this project is to write a program able to simulate a single headed, single tape Turing machine from a 
 machine description provided in json.
-This project is written in functionnal OCaml. It is a good occasion to experiment clever type designs and a smart 
-functionnal approach to your program.
+This project is written in functional OCaml. It is a good occasion to experiment clever type designs and a smart 
+functional approach to your program.
 ---
 ## Instructions
+Build the program with:
 ```
 make
 ```
@@ -23,7 +24,8 @@ Then run the program with the following command:
  - [Ocaml Manual](https://ocaml.org/manual/5.5/index.html)
 
 ### IA uses
-
+AI was used on an ad hoc basis with the aim of learning the intricacies of this new language 
+for us, and never with the intention that it should code on our behalf.
 ---
 ## Bonuses
 ### Time Complexity
