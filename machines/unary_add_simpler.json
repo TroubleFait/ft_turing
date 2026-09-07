@@ -1,5 +1,5 @@
 {
-  "name": "add_2",
+  "name": "unary_add_simpler",
   "alphabet": ["1", "+", "=", "."],
   "blank" : ".",
   "states" : [ "a", "b", "c", "HALT" ],

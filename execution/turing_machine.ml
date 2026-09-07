@@ -2,20 +2,25 @@ module JSON = struct
   include Parser
 end
 
-module CharHash = Rules.CharHash
+module CharHash = Utils.CharHash
 
 exception Symbol_not_in_transition of char * string
 exception Endless_loop of int * string
 
-type rules = Rules.rules
+type flags = {
+	skip:   bool;
+	window: int;
+}
+
+type rules      = Rules.rules
 type transition = Rules.transition
-type action = Rules.action
+type action     = Rules.action
 let action_to_int = Rules.action_to_int
 let action_to_str = Rules.action_to_str
 
 type machine = {
 	rules: rules;
-	tape: Tape.t;
+	tape:  Tape.t;
 	index: int;
 	state: string;
 	last_change: machine option;
@@ -70,40 +75,31 @@ let tape_to_window_str ?(window_size = 20) (machine: machine) (transition: trans
 	^ after_cursor
 	^ "]"
 
-let print_step ?(window_size = 20) (machine: machine) (transition:transition) : unit =
+let print_step (window_size: int) (machine: machine) (transition:transition) : unit =
 	Printf.printf "%s " (tape_to_window_str ~window_size machine transition);
 	Printf.printf "(%s, %c) -> (%s, %s, %s)\n%!" machine.state (Tape.read machine.tape)
-		( if machine.state <> transition.to_state then new_state_color transition.to_state else transition.to_state )
+		( if is_new_state  machine transition then new_state_color transition.to_state else transition.to_state )
 		( if is_new_letter machine transition then new_letter_colour (String.of_char transition.write) else (String.of_char transition.write) )
 		(action_to_str transition.action)
 
 let get_transition (machine: machine): transition =
 	try begin
-		JSON.StringHash.find machine.state machine.rules.transitions
-		|> CharHash.find @@ Tape.read machine.tape
+		CharHash.find
+			(Utils.StringHash.find machine.rules.transitions machine.state)
+			(Tape.read machine.tape)
 	end with Not_found -> raise @@ Symbol_not_in_transition (Tape.read machine.tape, machine.state)
 
 let write_cell (transition: transition) (machine: machine) : machine =
-(* 	Printf.printf "Checking loop: %s\n" (match machine.last_change with *)
-(* 	| None -> "None" *)
-(* 	| Some old -> Printf.sprintf "tape: %s, old {index=%d; state=%s; tape='%s'}" machine.tape old.index old.state old.tape); *)
-		{
-			machine with
-	    tape = begin match is_new_letter machine transition with
-				| true  -> Tape.write transition.write machine.tape
-				| false -> machine.tape
-				end
+		{ machine with
+	    tape = Tape.write transition.write machine.tape
 				|> Tape.move machine.rules.blank transition.action;
 			index = machine.index + (action_to_int transition.action);
 			state = transition.to_state;
 		}
 
 let check_bounds (transition: transition) (machine: machine) : machine =
-(* 	Printf.printf "%s\n" (match machine.last_change with *)
-(* 	| None -> "None" *)
-(* 	| Some old -> Printf.sprintf "old {index=%d; state=%s; tape='%s'}" old.index old.state old.tape); *)
 	match machine.last_change with
-	| None -> raise @@ Endless_loop (machine.index, "(Impossible to happen)")
+	| None -> failwith "machine.last_change uninitialised"
  	| Some old ->
 	match transition.action with
 	| Left when Tape.is_begin machine.tape -> begin
@@ -122,8 +118,7 @@ let check_bounds (transition: transition) (machine: machine) : machine =
 		match Tape.read machine.tape with
 		| c when c = machine.rules.blank && transition.to_state = machine.state -> raise @@ Endless_loop (machine.index, "Infinite Right")
 		| _ -> { machine with
-				last_change = Some {
-						old with
+				last_change = Some { old with
 						tape = old.tape
 							|> Tape.move machine.rules.blank Right
 							|> Tape.move machine.rules.blank Left
@@ -133,7 +128,6 @@ let check_bounds (transition: transition) (machine: machine) : machine =
 
 let check_loop (transition:transition) (machine: machine) : machine =
 	let new_last_change () = Some { machine with
-    (* tape = String.mapi (fun i c -> if i = machine.index then transition.write else c) machine.tape; *)
     last_change = None }
   in
   match machine.last_change with
@@ -144,11 +138,12 @@ let check_loop (transition:transition) (machine: machine) : machine =
   | _ -> if is_new_letter machine transition then {
       machine with last_change = new_last_change () } else machine
 
-let execute_cell (machine : machine) : machine =
+let execute_cell (flags: flags) (machine : machine) : machine =
 	let halt_machine = { machine with state = List.hd machine.rules.finals } in
 	try begin
 		let transition = get_transition machine in
-		print_step ~window_size:60 machine transition;
+		if not (flags.skip && machine.last_change <> None) || is_new_state machine transition || is_new_letter machine transition then
+			print_step flags.window machine transition;
 		machine
 		|> check_loop transition
 		|> check_bounds transition
@@ -162,11 +157,11 @@ let execute_cell (machine : machine) : machine =
 		| Tape.Misplaced_cursor msg -> Utils.print_err "%s\n" msg;
 			halt_machine
 
-let start_machine (input : string) (rules:rules) : Tape.t * char =
-	let rec go (machine : machine) : Tape.t * char =
-		match JSON.StringHash.find_opt machine.state machine.rules.transitions with
-		| Some _ -> execute_cell machine |> go
-		| None -> machine.tape, machine.rules.blank (*is a final state*)
+let start_machine (flags: flags) (rules: rules) (input: string) : Tape.t =
+	let rec go (machine : machine) : Tape.t =
+		match Utils.StringHash.find_opt machine.rules.transitions machine.state with
+		| Some _ -> execute_cell flags machine |> go
+		| None -> machine.tape
 	in go {
 		rules = rules;
 		tape = if input = "" then Tape.of_string @@ String.of_char rules.blank else Tape.of_string input;

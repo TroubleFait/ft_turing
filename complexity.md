@@ -1,16 +1,8 @@
-# Time complexity 
-### Size units
-t : tape length
+# Time complexity of an iteration through the tape 
 
 ---
 # Final complexity : O(1)
-``` 
-    O(1)
-     |
-     v
-    O(1)
-```
----
+
 ### start_machine O(1) :
 ```
     go O(1) :

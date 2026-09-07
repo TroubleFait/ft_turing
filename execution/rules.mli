@@ -1,11 +1,9 @@
 module JSON : sig
   type value_t = Parser.value_t
-  module StringHash = Parser.StringHash
 end
 
-module CharHash : sig
-	include Map.S with type key = char
-end
+module CharHash   = Utils.CharHash
+module StringHash = Utils.StringHash
 
 exception Invalid_struct
 
@@ -23,6 +21,8 @@ type transition = {
 	action: action;
 }
 
+val transition_of : char * string * char * action -> transition
+
 type state = transition CharHash.t
 
 type rules = {
@@ -32,10 +32,10 @@ type rules = {
 	states: string list;
 	initial: string;
 	finals: string list;
-	transitions: state JSON.StringHash.t;
+	transitions: state StringHash.t;
 }
 
-val parse : JSON.value_t -> rules
-val validate : rules -> rules
-val validate_input : string -> rules -> rules
-val is_HALT_reachable: rules -> rules
+val parse             : JSON.value_t -> rules
+val validate          : rules -> rules
+val validate_input    : string -> rules -> rules
+val is_HALT_reachable : rules -> rules

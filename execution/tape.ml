@@ -53,20 +53,19 @@ let of_string (str: string) : t =
   |> rewind
 
 let to_string (tape: t) : string =
-  (
-    tape.left
-    |> List.rev
+  let left =
+    tape.left |> List.rev
     |> List.to_seq
     |> String.of_seq
-  )
-  ^
-  (
+  in
+  let right =
     tape.right
     |> List.to_seq
     |> String.of_seq
-  )
+  in
+  left ^ right
 
-let print (tape, blank: t * char) =
+let print (tape: t) =
   let rewind = rewind tape in
   let print_char = Printf.printf "%c" in
   match rewind.left with

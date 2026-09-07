@@ -2,7 +2,8 @@ module JSON = struct
 	include Parser
 end
 
-module CharHash = Map.Make(Char)
+module CharHash   = Utils.CharHash
+module StringHash = Utils.StringHash
 
 let print_invalid_struct () = Printf.printf "Invalid object structure; Expected {
 	name: string;
@@ -40,6 +41,9 @@ type transition = {
 	action: action;
 }
 
+let transition_of (read, to_state, write, action) =
+	{ read; to_state; write; action }
+
 type state = transition CharHash.t
 
 type rules = {
@@ -49,7 +53,7 @@ type rules = {
 	states: string list;
 	initial: string;
 	finals: string list;
-	transitions: state JSON.StringHash.t;
+	transitions: state StringHash.t;
 }
 
 let string_of_JSON_value ?(prefix = "") ?(empty_error = "empty") ?(invalid_type_error = "not a string") = function
@@ -68,12 +72,13 @@ let action_of_JSON_value = function
 	| JSON.String s -> failwith ("action: Not LEFT or RIGHT: `" ^ s ^ "'")
 	| _ -> failwith "action: not a string"
 
-let check_binding_keys (to_compare: string list) (bindings: string list) =
-(* 	Printf.printf "to_compare keys:\t %s\n" (to_compare |> List.sort compare |> String.concat ", "); *)
-(* 	Printf.printf "checking binding keys:\t %s\n" (String.concat ", " bindings); *)
+let check_keys (tbl: JSON.value_t StringHash.t) (to_compare: string list) =
+	let keys =
+		tbl |> StringHash.to_seq_keys |> List.of_seq |> List.sort compare
+	in
 	to_compare
 	|> List.sort compare
-	|> List.equal (=) bindings
+	|> List.equal (=) keys
 
 let create_name = string_of_JSON_value ~prefix:"Name: "
 
@@ -99,47 +104,57 @@ let create_finals = function
 		|> List.map (string_of_JSON_value ~prefix:"Finals: one is ")
 	| _ -> failwith "invalid finals type"
 
+module CharMap = Map.Make(Char)
+
 let create_transitions v =
 	let transition_of_JSON_object acc = function
 		| JSON.Object obj
-			when JSON.StringHash.bindings obj |> List.split |> fst
-			|> check_binding_keys ["read"; "to_state"; "write"; "action"]
-			-> let read_key = char_of_JSON_value ~prefix:"Read: " @@ JSON.StringHash.find "read" obj in
-				CharHash.add read_key {
+			when ["read"; "to_state"; "write"; "action"]
+			|> check_keys obj
+			-> let read_key = char_of_JSON_value ~prefix:"Read: " @@ StringHash.find obj "read" in
+				CharMap.add read_key {
 					read     = read_key;
 					to_state = string_of_JSON_value ~prefix:"to_state: "
-																					                @@ JSON.StringHash.find "to_state" obj;
-					write    = char_of_JSON_value ~prefix:"Write: " @@ JSON.StringHash.find "write"    obj;
-					action   = action_of_JSON_value                 @@ JSON.StringHash.find "action"   obj;
+																					                @@ StringHash.find obj "to_state";
+					write    = char_of_JSON_value ~prefix:"Write: " @@ StringHash.find obj "write";
+					action   = action_of_JSON_value                 @@ StringHash.find obj "action";
 				} acc
 		| JSON.Object _ -> failwith "invalid transition structure"
 		| _ -> raise Invalid_struct
 	in
-	let charhash_of_array = function
-		| JSON.Array a -> Array.fold_left transition_of_JSON_object CharHash.empty a
+	let charhash_of_array (key, value: StringHash.key * JSON.value_t) =
+		match value with
+		| JSON.Array a -> key, Array.fold_left transition_of_JSON_object CharMap.empty a
+			|> CharMap.to_seq
+			|> CharHash.of_seq
 		| _ -> failwith ""
 	in
 	match v with
-	| JSON.Object obj -> JSON.StringHash.map charhash_of_array obj
+	| JSON.Object obj -> obj
+		|> StringHash.to_seq
+		|> List.of_seq
+		|> List.map charhash_of_array
+		|> List.to_seq
+		|> StringHash.of_seq
 	| _ -> failwith "invalid transitions type"
 
 
 let create_rules obj =
 	{
-		name        = create_name        @@ JSON.StringHash.find "name"        obj;
-		alphabet    = create_alphabet    @@ JSON.StringHash.find "alphabet"    obj;
-		blank       = create_blank       @@ JSON.StringHash.find "blank"       obj;
-		states      = create_states      @@ JSON.StringHash.find "states"      obj;
-		initial     = create_initial     @@ JSON.StringHash.find "initial"     obj;
-		finals      = create_finals      @@ JSON.StringHash.find "finals"      obj;
-		transitions = create_transitions @@ JSON.StringHash.find "transitions" obj;
+		name        = create_name        @@ StringHash.find obj "name";
+		alphabet    = create_alphabet    @@ StringHash.find obj "alphabet";
+		blank       = create_blank       @@ StringHash.find obj "blank";
+		states      = create_states      @@ StringHash.find obj "states";
+		initial     = create_initial     @@ StringHash.find obj "initial";
+		finals      = create_finals      @@ StringHash.find obj "finals";
+		transitions = create_transitions @@ StringHash.find obj "transitions";
 	}
 
 let parse (json: JSON.value_t) : rules =
 	match json with
 	| JSON.Object obj
-		when JSON.StringHash.bindings obj |> List.split |> fst
-		|> check_binding_keys ["name"; "alphabet"; "blank"; "states"; "initial"; "finals"; "transitions"]
+		when ["name"; "alphabet"; "blank"; "states"; "initial"; "finals"; "transitions"]
+		|> check_keys obj 
 		-> create_rules obj
 	| JSON.Object _ -> raise Invalid_struct
 	| _ -> raise Invalid_struct
@@ -170,7 +185,7 @@ let validate_finals (states: string list) (finals: string list) =
 	List.iter (validate_state ~prefix:"Finals: " states) finals
 
 let validate_transition (alphabet: string) (states: string list) (transition: transition CharHash.t) =
-	match CharHash.bindings transition |> List.split |> snd with
+	match CharHash.to_seq_values transition |> List.of_seq with
 	| [] -> failwith "Empty transition"
 	| lst -> List.iter (fun v ->
 			validate_char   ~prefix:"read: " alphabet v.read;
@@ -178,30 +193,31 @@ let validate_transition (alphabet: string) (states: string list) (transition: tr
 			validate_char   ~prefix:"write: " alphabet v.write;
 		) lst
 
-let validate_transitions (alphabet: string) (states: string list) (transitions: (transition CharHash.t) JSON.StringHash.t) =
-	match JSON.StringHash.bindings transitions |> List.split |> snd with
+let validate_transitions (alphabet: string) (states: string list) (transitions: (transition CharHash.t) StringHash.t) =
+	match StringHash.to_seq_values transitions |> List.of_seq with
 	| [] -> failwith "transitions is empty"
 	| lst -> List.iter (validate_transition alphabet states) lst
 
 let validate (rules: rules) : rules =
 	validate_alphabet    rules.alphabet;
   validate_char        ~fail_msg:"blank symbol is not in alphabet" rules.alphabet rules.blank;
-  validate_states      rules.finals   (JSON.StringHash.bindings rules.transitions |> List.split |> fst) rules.states;
+  validate_states      rules.finals   (StringHash.to_seq_keys rules.transitions |> List.of_seq) rules.states;
   validate_state       ~prefix:"Initial: " rules.states   rules.initial;
   validate_finals      rules.states   rules.finals;
   validate_transitions rules.alphabet rules.states rules.transitions;
   rules
 
 let validate_input (tape: string) (rules: rules) : rules =
-(* 	match String.index_opt tape rules.blank with *)
-(* 	| Some _ -> failwith @@ "Blank char: `" ^ (String.of_char rules.blank) ^ "' is in the input" *)
-(* 	| None -> String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape; rules *)
-String.iter (validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet) tape; rules
+	String.iter (fun c -> if c = rules.blank then
+			failwith "blank found in input" else
+			validate_char ~fail_msg:("a symbol in input is not in alphabet") rules.alphabet c
+		) tape;
+	rules
 
 type halt_reached = Found | Already_explored of string list
 
 let is_HALT_reachable (rules: rules) : rules =
-	let transition_is_halt (finals: string list) key = function
+	let transition_is_halt (finals: string list) = function
 		| elem when List.mem elem.to_state finals -> true
 		| _ -> false
 	in
@@ -210,8 +226,10 @@ let is_HALT_reachable (rules: rules) : rules =
 		| Already_explored [] -> failwith "empty string list in is_HALT_reachable.go"
 		| Already_explored (current :: tail) when List.mem current tail -> Already_explored (tail)
 		| Already_explored (current :: tail) ->
-		let state = JSON.StringHash.find current rules.transitions in
-		match CharHash.exists (transition_is_halt rules.finals) state with
+		let state = StringHash.find rules.transitions current in
+		match CharHash.to_seq_values state
+			|> Seq.exists (transition_is_halt rules.finals)
+		with
 		| true -> Found
 		| false -> CharHash.fold (
 			fun key transition explored ->

@@ -1,5 +1,5 @@
 {
-  "name": "as_much",
+  "name": "infinity_war",
   "alphabet": ["a", "A", "B", "0", "1", "."],
   "blank" : ".",
   "states" : [ "le", "ri", "HALT" ],
