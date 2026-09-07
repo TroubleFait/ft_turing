@@ -1,6 +1,6 @@
 {
   "name": "infinity_war",
-  "alphabet": ["a", "A", "B", "0", "1", "."],
+  "alphabet": ["Y", "X", "Z", "0", "1", "."],
   "blank" : ".",
   "states" : [ "le", "ri", "HALT" ],
   "initial" : "ri",
@@ -8,16 +8,16 @@
 
   "transitions" : {
     "ri": [
-      { "read" : "B", "to_state": "le", "write": "B", "action": "LEFT"},
-      { "read" : "a", "to_state": "le", "write": "A", "action": "RIGHT"},
-      { "read" : "A", "to_state": "ri", "write": "a", "action": "RIGHT"},
+      { "read" : "Z", "to_state": "le", "write": "Z", "action": "LEFT"},
+      { "read" : "Y", "to_state": "le", "write": "X", "action": "RIGHT"},
+      { "read" : "X", "to_state": "ri", "write": "Y", "action": "RIGHT"},
       { "read" : "0", "to_state": "ri", "write": "0", "action": "RIGHT"}
     ],
     "le": [
       { "read" : ".", "to_state": "ri", "write": ".", "action": "RIGHT"},
-      { "read" : "A", "to_state": "le", "write": "A", "action": "LEFT"},
-      { "read" : "a", "to_state": "le", "write": "a", "action": "LEFT"},
-      { "read" : "B", "to_state": "le", "write": "B", "action": "LEFT"},
+      { "read" : "X", "to_state": "le", "write": "X", "action": "LEFT"},
+      { "read" : "Y", "to_state": "le", "write": "Y", "action": "LEFT"},
+      { "read" : "Z", "to_state": "le", "write": "Z", "action": "LEFT"},
       { "read" : "0", "to_state": "le", "write": "0", "action": "LEFT"},
       { "read" : "1", "to_state": "HALT", "write": "1", "action": "LEFT"}
     ]
